@@ -1,6 +1,8 @@
+console.log("Techer.");
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { AlertCircle, TrendingUp, Users, BookOpen, Activity, CheckCircle, Clock } from 'lucide-react';
+
 
 // Mock data - in production, this would come from the backend API
 const generateMockData = () => ({
