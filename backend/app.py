@@ -93,6 +93,9 @@ def register_blueprints(app):
     from api.pbl_routes import pbl_bp
     from api.analytics_routes import analytics_bp
     from api.classroom_routes import classroom_bp
+    from api.live_polling_routes import live_polling_bp
+    from api.template_routes import template_bp
+    from api.dashboard_routes import dashboard_bp
 
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     logger.info("Registered: /api/auth (Authentication)")
@@ -110,7 +113,16 @@ def register_blueprints(app):
     logger.info("Registered: /api/pbl (Project-Based Learning)")
 
     app.register_blueprint(analytics_bp, url_prefix="/api/analytics")
-    logger.info("Registered: /api/analytics (Analytics & Templates)")
+    logger.info("Registered: /api/analytics (Analytics & Reporting)")
+
+    app.register_blueprint(live_polling_bp, url_prefix="/api/polling")
+    logger.info("Registered: /api/polling (Live Polling System)")
+
+    app.register_blueprint(template_bp, url_prefix="/api/templates")
+    logger.info("Registered: /api/templates (Curriculum Templates)")
+
+    app.register_blueprint(dashboard_bp, url_prefix="/api/dashboard")
+    logger.info("Registered: /api/dashboard (Real-Time Teacher Dashboards)")
 
     logger.info("All blueprints registered successfully")
 
@@ -228,6 +240,10 @@ def register_error_handlers(app):
                 "engagement": "/api/engagement",
                 "pbl": "/api/pbl",
                 "analytics": "/api/analytics",
+                "classroom": "/api/classroom",
+                "polling": "/api/polling",
+                "templates": "/api/templates",
+                "dashboard": "/api/dashboard",
                 "health": "/api/health"
             }
         })
