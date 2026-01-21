@@ -61,11 +61,13 @@ def create_app(config_class=Config):
 
 def register_blueprints(app):
     """Register all API route blueprints"""
+    from api.auth_routes import auth_bp
     from api.mastery_routes import mastery_bp
     from api.engagement_routes import engagement_bp
     from api.pbl_routes import pbl_bp
     from api.analytics_routes import analytics_bp
 
+    app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(mastery_bp, url_prefix="/api/mastery")
     app.register_blueprint(engagement_bp, url_prefix="/api/engagement")
     app.register_blueprint(pbl_bp, url_prefix="/api/pbl")
@@ -163,32 +165,37 @@ def register_socketio_events(socketio):
 # ============================================================================
 
 def register_error_handlers(app):
+    """Register error handlers and health check routes"""
+    from utils.error_handlers import register_error_handlers as register_handlers
+    from utils.error_handlers import register_custom_error_handlers
 
     @app.route("/")
     def index():
         return jsonify({
             "name": "AMEP API",
             "version": "1.0.0",
-            "status": "running"
+            "status": "running",
+            "endpoints": {
+                "auth": "/api/auth",
+                "mastery": "/api/mastery",
+                "engagement": "/api/engagement",
+                "pbl": "/api/pbl",
+                "analytics": "/api/analytics",
+                "health": "/api/health"
+            }
         })
 
     @app.route("/api/health", methods=["GET"])
     def health_check():
         return jsonify({
             "status": "healthy",
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow().isoformat(),
+            "database": "connected"
         }), 200
 
-    @app.errorhandler(404)
-    def not_found(error):
-        return jsonify({"error": "Endpoint not found"}), 404
-
-    @app.errorhandler(500)
-    def internal_error(error):
-        return jsonify({
-            "error": "Internal server error",
-            "message": str(error) if app.config["DEBUG"] else "An error occurred"
-        }), 500
+    # Register comprehensive error handlers
+    register_handlers(app)
+    register_custom_error_handlers(app)
 
     print("✓ Error handlers registered")
 
