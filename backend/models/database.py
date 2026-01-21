@@ -100,6 +100,14 @@ CURRICULUM_TEMPLATES = 'curriculum_templates'
 INSTITUTIONAL_METRICS = 'institutional_metrics'
 TEACHER_INTERVENTIONS = 'teacher_interventions'
 
+# Classroom Management Collections
+CLASSROOMS = 'classrooms'
+CLASSROOM_MEMBERSHIPS = 'classroom_memberships'
+CLASSROOM_POSTS = 'classroom_posts'
+CLASSROOM_COMMENTS = 'classroom_comments'
+CLASSROOM_SUBMISSIONS = 'classroom_submissions'
+CLASSROOM_NOTIFICATIONS = 'classroom_notifications'
+
 # ============================================================================
 # INITIALIZE COLLECTIONS & INDEXES
 # ============================================================================
@@ -237,7 +245,49 @@ def init_db(app=None):
     db[TEACHER_INTERVENTIONS].create_index([('concept_id', ASCENDING)])
     db[TEACHER_INTERVENTIONS].create_index([('performed_at', DESCENDING)])
     print(f"✓ {TEACHER_INTERVENTIONS} collection initialized")
-    
+
+    # Classrooms collection
+    db[CLASSROOMS].create_index([('teacher_id', ASCENDING)])
+    db[CLASSROOMS].create_index([('join_code', ASCENDING)], unique=True)
+    db[CLASSROOMS].create_index([('is_active', ASCENDING)])
+    db[CLASSROOMS].create_index([('created_at', DESCENDING)])
+    print(f"✓ {CLASSROOMS} collection initialized")
+
+    # Classroom Memberships collection
+    db[CLASSROOM_MEMBERSHIPS].create_index([
+        ('classroom_id', ASCENDING),
+        ('student_id', ASCENDING)
+    ], unique=True)
+    db[CLASSROOM_MEMBERSHIPS].create_index([('student_id', ASCENDING)])
+    db[CLASSROOM_MEMBERSHIPS].create_index([('classroom_id', ASCENDING), ('is_active', ASCENDING)])
+    print(f"✓ {CLASSROOM_MEMBERSHIPS} collection initialized")
+
+    # Classroom Posts collection
+    db[CLASSROOM_POSTS].create_index([('classroom_id', ASCENDING), ('created_at', DESCENDING)])
+    db[CLASSROOM_POSTS].create_index([('author_id', ASCENDING)])
+    db[CLASSROOM_POSTS].create_index([('post_type', ASCENDING)])
+    db[CLASSROOM_POSTS].create_index([('is_pinned', DESCENDING), ('created_at', DESCENDING)])
+    print(f"✓ {CLASSROOM_POSTS} collection initialized")
+
+    # Classroom Comments collection
+    db[CLASSROOM_COMMENTS].create_index([('post_id', ASCENDING), ('created_at', ASCENDING)])
+    db[CLASSROOM_COMMENTS].create_index([('author_id', ASCENDING)])
+    print(f"✓ {CLASSROOM_COMMENTS} collection initialized")
+
+    # Classroom Submissions collection
+    db[CLASSROOM_SUBMISSIONS].create_index([
+        ('assignment_id', ASCENDING),
+        ('student_id', ASCENDING)
+    ], unique=True)
+    db[CLASSROOM_SUBMISSIONS].create_index([('student_id', ASCENDING), ('status', ASCENDING)])
+    db[CLASSROOM_SUBMISSIONS].create_index([('assignment_id', ASCENDING), ('status', ASCENDING)])
+    print(f"✓ {CLASSROOM_SUBMISSIONS} collection initialized")
+
+    # Classroom Notifications collection
+    db[CLASSROOM_NOTIFICATIONS].create_index([('user_id', ASCENDING), ('is_read', ASCENDING), ('created_at', DESCENDING)])
+    db[CLASSROOM_NOTIFICATIONS].create_index([('classroom_id', ASCENDING)])
+    print(f"✓ {CLASSROOM_NOTIFICATIONS} collection initialized")
+
     print("="*60)
     print("✓ All MongoDB collections and indexes created successfully")
     print("="*60 + "\n")

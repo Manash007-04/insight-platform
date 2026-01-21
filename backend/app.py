@@ -92,12 +92,16 @@ def register_blueprints(app):
     from api.engagement_routes import engagement_bp
     from api.pbl_routes import pbl_bp
     from api.analytics_routes import analytics_bp
+    from api.classroom_routes import classroom_bp
 
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     logger.info("Registered: /api/auth (Authentication)")
 
     app.register_blueprint(mastery_bp, url_prefix="/api/mastery")
     logger.info("Registered: /api/mastery (Knowledge Tracing)")
+
+    app.register_blueprint(classroom_bp, url_prefix="/api/classroom")
+    logger.info("Registered: /api/classroom (Classroom Management)")
 
     app.register_blueprint(engagement_bp, url_prefix="/api/engagement")
     logger.info("Registered: /api/engagement (Engagement Detection)")
