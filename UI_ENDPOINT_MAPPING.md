@@ -66,7 +66,7 @@ Complete backend API documentation with request/response formats.
 | `/classrooms/{classroom_id}` | PUT | `{class_name?, section?, subject?, room?, description?, theme_color?, grade_level?}` | `{message}` |
 | `/classrooms/{classroom_id}` | DELETE | - | `{message}` |
 | `/classrooms/join` | POST | `{student_id, join_code}` | `{membership_id, classroom_id, message}` |
-| `/classrooms/teacher/{teacher_id}` | GET | Query: `?active_only` | `[{classroom_id, class_name, student_count, join_code}]` |
+| `/teacher/{teacher_id}/classrooms` | GET | Query: `?active_only` | `[{classroom_id, class_name, student_count, join_code}]` |
 | `/classrooms/student/{student_id}` | GET | - | `[{classroom_id, class_name, subject, teacher_name}]` |
 | `/classrooms/{classroom_id}/students` | GET | - | `[{student_id, name, grade_level, joined_at}]` |
 | `/classrooms/{classroom_id}/students/{student_id}` | DELETE | - | `{message}` |
@@ -149,6 +149,9 @@ Complete backend API documentation with request/response formats.
 | `/institutional-metrics` | GET | - | `{institution_summary, engagement_alerts, interventions_30_days}` |
 | `/unified` | GET | Query: `?date` | `{metric_date, mastery_rate, teacher_adoption_rate, admin_confidence_score, total_students}` |
 | `/unified/trends` | GET | Query: `?days` | `{has_data, trends: {mastery_rate, engagement_score}, trend_directions}` |
+| `/talk-time/{classroom_id}` | GET | - | `{classroom_id, talk_time_distribution, teacher_talk_percentage, student_talk_percentage}` |
+| `/student/{student_id}` | GET | - | `{student_id, overall_mastery, engagement_score, active_projects, recent_assignments}` |
+| `/teacher/{teacher_id}/overview` | GET | - | `{teacher_id, total_classrooms, total_students, active_projects, total_projects, active_polls, total_polls}` |
 
 ---
 
@@ -161,7 +164,6 @@ Complete backend API documentation with request/response formats.
 | `/projects/{project_id}` | DELETE | - | `{message}` |
 | `/projects/{project_id}/stage` | PUT | `{new_stage}` | `{message, new_stage, stage_info}` |
 | `/projects/{project_id}/deliverable` | POST | `{team_id, submitted_by, deliverable_type, file_url, title?, description?}` | `{deliverable_id, message}` |
-| `/projects/{project_id}/deliverables` | GET | - | `[{deliverable_id, team_id, deliverable_type, file_url, submitted_at, graded, grade}]` |
 | `/projects/{project_id}/grade` | POST | `{teacher_id, deliverable_id, grade, feedback}` | `{message}` |
 | `/projects/classroom/{classroom_id}` | GET | - | `{classroom_id, projects, total_projects}` |
 | `/students/{student_id}/projects` | GET | - | `{student_id, projects: [{project_id, title, stage, deadline, status, team_id, team_name}], total}` |
