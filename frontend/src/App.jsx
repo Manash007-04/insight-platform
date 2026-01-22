@@ -19,6 +19,7 @@ import StudentPractice from './pages/StudentPractice';
 import StudentProjects from './pages/StudentProjects';
 import StudentPolls from './pages/StudentPolls';
 import ProtectedRoute from './components/ProtectedRoute';
+import TeacherClassDetails from './pages/TeacherClassDetails';
 
 function MainLayout({ isConnected }) {
   const location = useLocation();
@@ -52,6 +53,7 @@ function MainLayout({ isConnected }) {
         {/* Teacher Routes */}
         <Route path="/teacher" element={<ProtectedRoute requiredRole="teacher"><TeacherDashboard /></ProtectedRoute>} />
         <Route path="/teacher/classes" element={<ProtectedRoute requiredRole="teacher"><TeacherClasses /></ProtectedRoute>} />
+        <Route path="/classroom/:classroomId" element={<ProtectedRoute requiredRole="teacher"><TeacherClassDetails /></ProtectedRoute>} />
         <Route path="/teacher/analytics" element={<ProtectedRoute requiredRole="teacher"><TeacherAnalytics /></ProtectedRoute>} />
         <Route path="/teacher/polls" element={<ProtectedRoute requiredRole="teacher"><LivePolling /></ProtectedRoute>} />
         <Route path="/teacher/projects" element={<ProtectedRoute requiredRole="teacher"><PBLWorkspace /></ProtectedRoute>} />

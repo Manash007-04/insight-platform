@@ -56,45 +56,46 @@ const TeacherDashboard = () => {
     const fetchDashboardData = async () => {
       try {
         const userId = getUserId();
-        if (!userId) return;
+        console.log("TeacherDashboard: Fetching data for user:", userId);
+
+        if (!userId) {
+          console.warn("TeacherDashboard: No user ID found");
+          return;
+        }
 
         // 1. Fetch Teacher's Classes
         const classesRes = await classroomAPI.getTeacherClasses(userId);
-        const classes = classesRes.data;
+        console.log("TeacherDashboard: Classes fetched:", classesRes.data);
+        const classes = classesRes.data || [];
 
-        // Filter for "Today's Classes" (simple day name check)
+        // Filter for "Today's Classes"
         const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
         const todayName = days[new Date().getDay()];
         const todayClasses = classes.filter(c =>
-          c.schedule?.days?.some(d => d.includes(todayName.substring(0, 3)))
+          c.schedule?.days?.some(d => d.toLowerCase().includes(todayName.toLowerCase().substring(0, 3)))
         );
 
-        // If no specific day match (e.g. data format mismatch), just show first 3
+        // Fallback: show all active classes if no specific match (or just first 3)
+        // Check if classes array is empty first
         setTodaysClasses(todayClasses.length > 0 ? todayClasses : classes.slice(0, 3));
 
-        // 2. Fetch Alerts (At Risk Students)
-        // Note: dashboardAPI.getAlerts might need teacher_id or we filter results
-        // Assuming we can get alerts for teacher's students or iterating classes
-        // For now, let's try getting alerts directly if endpoint supports it, or mocked flow
-        // Since getAlerts takes params, we might need to filter by severity 'AT_RISK' or 'CRITICAL'
-        const alertsRes = await dashboardAPI.getAlerts({
-          severity: 'AT_RISK',
-          teacher_id: userId // If backend supports filtering by teacher
-        });
-
-        // If backend doesn't filter by teacher automatically, we might get all alerts (unlikely in prod but possible here)
-        // Let's assume the API returns relevant alerts.
-        setAtRiskStudents(alertsRes.data.slice(0, 5)); // Top 5
+        // 2. Fetch Alerts
+        try {
+          const alertsRes = await dashboardAPI.getAlerts({
+            severity: 'AT_RISK',
+            teacher_id: userId
+          });
+          console.log("TeacherDashboard: Alerts fetched:", alertsRes.data);
+          setAtRiskStudents(Array.isArray(alertsRes.data) ? alertsRes.data.slice(0, 5) : []);
+        } catch (err) {
+          console.error("TeacherDashboard: Error fetching alerts:", err);
+          setAtRiskStudents([]);
+        }
 
         // 3. Calculate Stats
         let totalStudents = 0;
         let totalEngagement = 0;
         let classCountWithEngagement = 0;
-
-        // We need to fetch engagement for each class to get accurate average
-        // This could be heavy, so maybe limit to active classes or use a unified metrics endpoint if available
-        // dashboardAPI.getInstitutionalMetrics is likely admin only.
-        // Let's fetch simplified engagement for classes
 
         const engagementPromises = classes.map(c => dashboardAPI.getClassEngagement(c.classroom_id));
         const engagementResults = await Promise.allSettled(engagementPromises);
@@ -110,16 +111,17 @@ const TeacherDashboard = () => {
         });
 
         const avgEngagement = classCountWithEngagement > 0 ? Math.round(totalEngagement / classCountWithEngagement) : 0;
+        console.log("TeacherDashboard: Calculated stats:", { totalStudents, avgEngagement });
 
         setStats({
           totalStudents,
           avgEngagement,
-          activeProjects: 8, // hardcoded for now
-          masteryIndex: 8.4 // hardcoded or need mastery API calculation
+          activeProjects: 8,
+          masteryIndex: 8.4
         });
 
-        // AI Suggestion (Mock logic based on real data)
-        if (avgEngagement < 60) {
+        // AI Suggestion
+        if (avgEngagement > 0 && avgEngagement < 60) {
           setAiSuggestion({
             title: "Low Engagement Detected",
             text: "Overall class engagement is below 60%. Consider introducing a live poll or interactive breakout session to boost participation."
@@ -127,7 +129,7 @@ const TeacherDashboard = () => {
         } else {
           setAiSuggestion({
             title: "AI Teaching Assistant Suggestion",
-            text: "Engagement analysis shows that student participation drops by 15% during \"Evidence Collection\" lectures. Consider adding a 5-minute interactive poll halfway through the session to re-engage the class."
+            text: "Student participation tends to drop during mid-session lectures. Consider adding a quick interactive poll to re-engage the class."
           });
         }
 

@@ -42,11 +42,11 @@ export const AuthProvider = ({ children }) => {
 
       localStorage.setItem('token', newToken);
       localStorage.setItem('user', JSON.stringify(userData));
-      
+
       setToken(newToken);
       setUser(userData);
-      
-      return { success: true };
+
+      return { success: true, user: userData };
     } catch (error) {
       return {
         success: false,
@@ -62,11 +62,11 @@ export const AuthProvider = ({ children }) => {
 
       localStorage.setItem('token', newToken);
       localStorage.setItem('user', JSON.stringify(userDataResponse));
-      
+
       setToken(newToken);
       setUser(userDataResponse);
-      
-      return { success: true };
+
+      return { success: true, user: userDataResponse };
     } catch (error) {
       return {
         success: false,

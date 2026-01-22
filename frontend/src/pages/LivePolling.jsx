@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Send, Users, AlertCircle, Clock, BarChart3, MessageSquare, Zap, Loader } from 'lucide-react';
 import { pollsAPI, classroomAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import TeacherLayout from '../components/TeacherLayout';
 
 const LivePollingSystem = () => {
   const { getUserId, isTeacher } = useAuth();
@@ -200,163 +201,165 @@ const LivePollingSystem = () => {
 
   // Teacher View
   return (
-    <div className="min-h-screen bg-teal-50/20 p-6 space-y-6">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-3">Live Polling Control Center</h1>
-        <p className="text-gray-500">Launch anonymous polls to gauge real-time understanding.</p>
-      </div>
-
-      {/* Create Poll Section */}
-      {!activePoll && (
-        <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
-            <MessageSquare className="text-teal-600" />
-            Create New Poll
-          </h2>
-
-          <div className="space-y-6 max-w-2xl">
-            {/* Class Selector */}
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Select Classroom</label>
-              <select
-                value={newPoll.classroom_id}
-                onChange={(e) => setNewPoll({ ...newPoll, classroom_id: e.target.value })}
-                className="w-full px-5 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900"
-              >
-                {classes.length === 0 && <option value="">No classes found</option>}
-                {classes.map(cls => (
-                  <option key={cls.classroom_id} value={cls.classroom_id}>{cls.class_name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Question</label>
-              <input
-                type="text"
-                value={newPoll.question}
-                onChange={(e) => setNewPoll({ ...newPoll, question: e.target.value })}
-                placeholder="What would you like to ask your students?"
-                className="w-full px-5 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Poll Type</label>
-              <select
-                value={newPoll.type}
-                onChange={(e) => setNewPoll({ ...newPoll, type: e.target.value })}
-                className="w-full px-5 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 text-gray-900"
-              >
-                <option value="understanding">Understanding Check</option>
-                <option value="multiple_choice">Multiple Choice</option>
-                <option value="fact_based">Fact-Based (has correct answer)</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Options</label>
-              <div className="space-y-3">
-                {newPoll.options.map((option, idx) => (
-                  <input
-                    key={idx}
-                    type="text"
-                    value={option}
-                    onChange={(e) => {
-                      const updated = [...newPoll.options];
-                      updated[idx] = e.target.value;
-                      setNewPoll({ ...newPoll, options: updated });
-                    }}
-                    placeholder={`Option ${idx + 1}`}
-                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 text-gray-900"
-                  />
-                ))}
-              </div>
-            </div>
-
-            <button
-              onClick={createPoll}
-              disabled={loading || !newPoll.question || !newPoll.classroom_id}
-              className="w-full bg-teal-600 text-white py-4 rounded-xl font-bold hover:bg-teal-700 transition-all flex items-center justify-center gap-3 shadow-lg shadow-teal-200 disabled:opacity-50"
-            >
-              {loading ? 'Launching...' : <><Send size={20} /> Launch Poll</>}
-            </button>
-          </div>
+    <TeacherLayout>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-800 mb-3">Live Polling Control Center</h1>
+          <p className="text-gray-500">Launch anonymous polls to gauge real-time understanding.</p>
         </div>
-      )}
 
-      {/* Active Poll Display */}
-      {activePoll && (
-        <div className="bg-white border-2 border-teal-500/20 rounded-2xl p-8 shadow-lg shadow-teal-100">
-          <div className="flex items-start justify-between mb-8">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse shadow-lg shadow-red-500/30" />
-                <span className="text-xs font-bold text-red-600 bg-red-100 px-3 py-1 rounded-full uppercase tracking-wider">Live & Listening</span>
-              </div>
-              <h2 className="text-3xl font-extrabold text-gray-900">{activePoll.question}</h2>
-            </div>
-            <button
-              onClick={closePoll}
-              className="px-6 py-2 bg-red-50 text-red-600 border border-red-200 rounded-xl font-bold hover:bg-red-100 transition-colors"
-            >
-              End Poll
-            </button>
-          </div>
+        {/* Create Poll Section */}
+        {!activePoll && (
+          <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
+            <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+              <MessageSquare className="text-teal-600" />
+              Create New Poll
+            </h2>
 
-          {/* Real-time Response Counter */}
-          <div className="mb-8 flex gap-6">
-            <div className="flex-1 p-6 bg-gray-50 rounded-2xl border border-gray-100 flex items-center gap-4">
-              <div className="p-4 bg-white rounded-xl shadow-sm">
-                <Users className="text-teal-600" size={32} />
-              </div>
+            <div className="space-y-6 max-w-2xl">
+              {/* Class Selector */}
               <div>
-                <p className="text-gray-500 text-sm font-bold uppercase">Responses Recieved</p>
-                <p className="text-4xl font-extrabold text-gray-800">
-                  <AnimatedCounter end={activePoll.totalResponses || 0} />
-                </p>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Select Classroom</label>
+                <select
+                  value={newPoll.classroom_id}
+                  onChange={(e) => setNewPoll({ ...newPoll, classroom_id: e.target.value })}
+                  className="w-full px-5 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900"
+                >
+                  {classes.length === 0 && <option value="">No classes found</option>}
+                  {classes.map(cls => (
+                    <option key={cls.classroom_id} value={cls.classroom_id}>{cls.class_name}</option>
+                  ))}
+                </select>
               </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Question</label>
+                <input
+                  type="text"
+                  value={newPoll.question}
+                  onChange={(e) => setNewPoll({ ...newPoll, question: e.target.value })}
+                  placeholder="What would you like to ask your students?"
+                  className="w-full px-5 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Poll Type</label>
+                <select
+                  value={newPoll.type}
+                  onChange={(e) => setNewPoll({ ...newPoll, type: e.target.value })}
+                  className="w-full px-5 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 text-gray-900"
+                >
+                  <option value="understanding">Understanding Check</option>
+                  <option value="multiple_choice">Multiple Choice</option>
+                  <option value="fact_based">Fact-Based (has correct answer)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Options</label>
+                <div className="space-y-3">
+                  {newPoll.options.map((option, idx) => (
+                    <input
+                      key={idx}
+                      type="text"
+                      value={option}
+                      onChange={(e) => {
+                        const updated = [...newPoll.options];
+                        updated[idx] = e.target.value;
+                        setNewPoll({ ...newPoll, options: updated });
+                      }}
+                      placeholder={`Option ${idx + 1}`}
+                      className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 text-gray-900"
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <button
+                onClick={createPoll}
+                disabled={loading || !newPoll.question || !newPoll.classroom_id}
+                className="w-full bg-teal-600 text-white py-4 rounded-xl font-bold hover:bg-teal-700 transition-all flex items-center justify-center gap-3 shadow-lg shadow-teal-200 disabled:opacity-50"
+              >
+                {loading ? 'Launching...' : <><Send size={20} /> Launch Poll</>}
+              </button>
             </div>
           </div>
+        )}
 
-          {/* Results Visualization */}
-          <div className="space-y-6">
-            {activePoll.responses?.map((response, idx) => (
-              <div key={idx}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-gray-700 font-bold">{response.option}</span>
-                  <span className="text-gray-500 font-medium">
-                    {response.count} votes ({response.percentage}%)
-                  </span>
+        {/* Active Poll Display */}
+        {activePoll && (
+          <div className="bg-white border-2 border-teal-500/20 rounded-2xl p-8 shadow-lg shadow-teal-100">
+            <div className="flex items-start justify-between mb-8">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse shadow-lg shadow-red-500/30" />
+                  <span className="text-xs font-bold text-red-600 bg-red-100 px-3 py-1 rounded-full uppercase tracking-wider">Live & Listening</span>
                 </div>
-                <div className="w-full h-8 bg-gray-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-teal-500 transition-all duration-1000 ease-out"
-                    style={{ width: `${response.percentage}%` }}
-                  />
+                <h2 className="text-3xl font-extrabold text-gray-900">{activePoll.question}</h2>
+              </div>
+              <button
+                onClick={closePoll}
+                className="px-6 py-2 bg-red-50 text-red-600 border border-red-200 rounded-xl font-bold hover:bg-red-100 transition-colors"
+              >
+                End Poll
+              </button>
+            </div>
+
+            {/* Real-time Response Counter */}
+            <div className="mb-8 flex gap-6">
+              <div className="flex-1 p-6 bg-gray-50 rounded-2xl border border-gray-100 flex items-center gap-4">
+                <div className="p-4 bg-white rounded-xl shadow-sm">
+                  <Users className="text-teal-600" size={32} />
+                </div>
+                <div>
+                  <p className="text-gray-500 text-sm font-bold uppercase">Responses Recieved</p>
+                  <p className="text-4xl font-extrabold text-gray-800">
+                    <AnimatedCounter end={activePoll.totalResponses || 0} />
+                  </p>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
+            </div>
 
-      {/* Research Citation */}
-      <div id="stats-section" className="mt-8 bg-indigo-50 border border-indigo-100 p-6 rounded-2xl">
-        <div className="flex items-start gap-3">
-          <Zap className="text-indigo-600 mt-1" size={20} />
-          <div>
-            <p className="font-bold text-indigo-900 mb-1">Pedagogical Insight</p>
-            <p className="text-indigo-700 text-sm">
-              "Immediate feedback allows lecturers to gauge student understanding in real-time and adjust teaching timely."
-              <br />
-              <span className="opacity-75">— Educational Impact Study (Paper 8h)</span>
-            </p>
+            {/* Results Visualization */}
+            <div className="space-y-6">
+              {activePoll.responses?.map((response, idx) => (
+                <div key={idx}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-gray-700 font-bold">{response.option}</span>
+                    <span className="text-gray-500 font-medium">
+                      {response.count} votes ({response.percentage}%)
+                    </span>
+                  </div>
+                  <div className="w-full h-8 bg-gray-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-teal-500 transition-all duration-1000 ease-out"
+                      style={{ width: `${response.percentage}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Research Citation */}
+        <div id="stats-section" className="mt-8 bg-indigo-50 border border-indigo-100 p-6 rounded-2xl">
+          <div className="flex items-start gap-3">
+            <Zap className="text-indigo-600 mt-1" size={20} />
+            <div>
+              <p className="font-bold text-indigo-900 mb-1">Pedagogical Insight</p>
+              <p className="text-indigo-700 text-sm">
+                "Immediate feedback allows lecturers to gauge student understanding in real-time and adjust teaching timely."
+                <br />
+                <span className="opacity-75">— Educational Impact Study (Paper 8h)</span>
+              </p>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </TeacherLayout>
   );
 };
 

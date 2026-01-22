@@ -74,6 +74,10 @@ export const classroomAPI = {
   getAssignment: (assignmentId) => api.get(`/classroom/assignments/${assignmentId}`),
   submitAssignment: (assignmentId, data) => api.post(`/classroom/assignments/${assignmentId}/submit`, data),
   getStudentAssignments: (studentId, status) => api.get(`/classroom/students/${studentId}/assignments`, { params: { status } }),
+  getClassroom: (classroomId) => api.get(`/classroom/classrooms/${classroomId}`),
+  getClassroomStudents: (classroomId) => api.get(`/classroom/classrooms/${classroomId}/students`),
+  createClass: (data) => api.post('/classroom/classrooms', data),
+  createPost: (classroomId, data) => api.post(`/classroom/classrooms/${classroomId}/posts`, data),
 };
 
 export const engagementAPI = {
