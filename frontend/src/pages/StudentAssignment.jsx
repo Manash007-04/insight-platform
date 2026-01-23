@@ -44,9 +44,9 @@ const StudentAssignment = () => {
         try {
             setSubmitting(true);
             await classroomAPI.submitAssignment(assignmentId, {
-                student_id: user.id /* or get from context */,
-                content: submissionText,
-                attachments: [] // Placeholder for file upload
+                student_id: user?.user_id || user?.id /* Ensure valid ID */,
+                submission_text: submissionText,
+                attachments: []
             });
             setSubmitted(true);
             setTimeout(() => {

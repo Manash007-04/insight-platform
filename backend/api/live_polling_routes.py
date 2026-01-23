@@ -462,6 +462,7 @@ def calculate_poll_results(poll_id: str, include_details: bool = False) -> dict:
         'poll_id': poll_id,
         'question': poll.get('question'),
         'poll_type': poll.get('poll_type'),
+        'options': poll.get('options', []),
         'total_responses': total_responses,
         'response_counts': response_counts,
         'response_percentages': response_percentages,
@@ -543,6 +544,17 @@ def get_classroom_polls(classroom_id):
         for poll in polls:
             # Calculate full results for each poll to show history
             poll_data = calculate_poll_results(poll['_id'])
+            
+            # Check if specific student has responded
+            student_id = request.args.get('student_id')
+            if student_id:
+                response = find_one(POLL_RESPONSES, {
+                    'poll_id': poll['_id'],
+                    'student_id': student_id
+                })
+                poll_data['has_responded'] = bool(response)
+                poll_data['user_response'] = response.get('response') if response else None
+            
             formatted_polls.append(poll_data)
 
         logger.info(f"Classroom polls retrieved | classroom_id: {classroom_id} | count: {len(formatted_polls)}")

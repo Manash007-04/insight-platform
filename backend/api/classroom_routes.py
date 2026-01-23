@@ -845,8 +845,8 @@ def get_assignment(assignment_id):
             'teacher_name': teacher.get('name') if teacher else None,
             'assignment_details': assignment.get('assignment_details', {}),
             'attachments': assignment.get('attachments', []),
-            'created_at': assignment.get('created_at').isoformat() if assignment.get('created_at') else None,
-            'due_date': assignment.get('assignment_details', {}).get('due_date').isoformat() if assignment.get('assignment_details', {}).get('due_date') else None,
+            'created_at': assignment.get('created_at').isoformat() if hasattr(assignment.get('created_at'), 'isoformat') else assignment.get('created_at'),
+            'due_date': assignment.get('assignment_details', {}).get('due_date').isoformat() if hasattr(assignment.get('assignment_details', {}).get('due_date'), 'isoformat') else assignment.get('assignment_details', {}).get('due_date'),
             'points': assignment.get('assignment_details', {}).get('points', 100)
         }
 
@@ -1142,7 +1142,7 @@ def get_student_assignments(student_id):
                     'status': submission.get('status'),
                     'grade': submission.get('grade'),
                     'is_late': submission.get('is_late'),
-                    'submitted_at': submission.get('submitted_at').isoformat() if submission.get('submitted_at') else None
+                    'submitted_at': submission.get('submitted_at').isoformat() if hasattr(submission.get('submitted_at'), 'isoformat') else submission.get('submitted_at')
                 })
 
         logger.info(f"Student assignments retrieved | student_id: {student_id} | count: {len(formatted_assignments)}")
