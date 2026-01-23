@@ -144,6 +144,7 @@ class PracticeSessionRequest(BaseModel):
     student_id: str
     session_duration: int = Field(default=30, ge=5, le=180)  # minutes
     subject_area: Optional[str] = None
+    classroom_id: Optional[str] = None
 
 class ContentItemResponse(BaseModel):
     """BR2: Practice content item"""

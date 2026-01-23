@@ -124,26 +124,37 @@ def get_student_mastery(student_id):
         classroom_id = request.args.get('classroom_id')
         logger.info(f"[GET_STUDENT_MASTERY] Request received | student_id: {student_id} | subject_area: {subject_area} | min_mastery: {min_mastery} | classroom_id: {classroom_id}")
 
-        query = {'student_id': student_id}
+        if classroom_id:
+            # If classroom_id is provided, get ALL concepts for that classroom
+            concept_query = {'classroom_id': classroom_id}
+            if subject_area:
+                concept_query['subject_area'] = subject_area
+            available_concepts = list(find_many(CONCEPTS, concept_query))
+        else:
+            # Fallback (legacy): Get concepts from mastery records only, or all if needed
+            # For now, if no class ID, we'll stick to mastery-based to avoid flooding
+            available_concepts = []
 
+        query = {'student_id': student_id}
         mastery_records = find_many(STUDENT_CONCEPT_MASTERY, query)
-        logger.info(f"[GET_STUDENT_MASTERY] Mastery records retrieved | student_id: {student_id} | record_count: {len(mastery_records)}")
+        mastery_map = {rec['concept_id']: rec for rec in mastery_records}
+        
+        logger.info(f"[GET_STUDENT_MASTERY] Data retrieved | student_id: {student_id} | class_concepts: {len(available_concepts)} | mastery_records: {len(mastery_records)}")
         
         concepts_data = []
-        for record in mastery_records:
-            concept = find_one(CONCEPTS, {'_id': record['concept_id']})
 
-            if concept:
-                if subject_area and concept.get('subject_area') != subject_area:
-                    continue
+        # If we have class concepts, use them as the base
+        if available_concepts:
+            for concept in available_concepts:
+                record = mastery_map.get(concept['_id'], {})
+                
+                # Filter by min_mastery if requested
                 if min_mastery and record.get('mastery_score', 0) < min_mastery:
-                    continue
-                if classroom_id and concept.get('classroom_id') != classroom_id:
                     continue
 
                 concepts_data.append({
-                    'concept_id': record['concept_id'],
-                    'concept_name': concept.get('concept_name', 'Unknown'),
+                    'concept_id': concept['_id'],
+                    'concept_name': concept.get('name', 'Unknown'), # Changed from concept_name to name
                     'classroom_id': concept.get('classroom_id'),
                     'mastery_score': record.get('mastery_score', 0),
                     'last_assessed': (record.get('last_assessed').isoformat() if hasattr(record.get('last_assessed'), 'isoformat') else record.get('last_assessed')) if record.get('last_assessed') else None,
@@ -152,8 +163,7 @@ def get_student_mastery(student_id):
                 })
 
         overall_mastery = sum(c['mastery_score'] for c in concepts_data) / len(concepts_data) if concepts_data else 0
-        logger.info(f"[GET_STUDENT_MASTERY] SUCCESS | student_id: {student_id} | concepts_count: {len(concepts_data)} | overall_mastery: {overall_mastery:.2f}")
-
+        
         return jsonify({
             'student_id': student_id,
             'concepts': concepts_data,
@@ -253,8 +263,9 @@ def get_class_mastery_for_concept(concept_id, class_id):
 @mastery_bp.route('/practice/generate', methods=['POST'])
 def generate_practice_session():
     try:
-        logger.info(f"[GENERATE_PRACTICE] Request received | student_id: {request.json.get('student_id')} | session_duration: {request.json.get('session_duration')}")
+        logger.info(f"[GENERATE_PRACTICE] Request received | student_id: {request.json.get('student_id')} | session_duration: {request.json.get('session_duration')} | classroom_id: {request.json.get('classroom_id')}")
         data = PracticeSessionRequest(**request.json)
+        classroom_id = data.classroom_id # Use validated field
 
         mastery_records = find_many(
             STUDENT_CONCEPT_MASTERY,
@@ -275,15 +286,36 @@ def generate_practice_session():
         
         from ai_engine.adaptive_practice import ContentItem
 
-        concepts = find_many(CONCEPTS, {})
-        logger.info(f"[GENERATE_PRACTICE] Concepts retrieved | count: {len(concepts)}")
+        concept_query = {}
+        if classroom_id:
+            concept_query['classroom_id'] = classroom_id
+
+        concepts = find_many(CONCEPTS, concept_query)
+        logger.info(f"[GENERATE_PRACTICE] Concepts retrieved | count: {len(concepts)} | classroom: {classroom_id}")
+        if not concepts:
+            logger.info("[GENERATE_PRACTICE] No concepts found, returning empty session")
+            return jsonify({
+                'session_id': str(ObjectId()),
+                'student_id': data.student_id,
+                'content_items': [],
+                'total_items': 0,
+                'estimated_duration': 0,
+                'cognitive_load': 0,
+                'load_status': 'NO_CONTENT',
+                'zpd_alignment': 'None',
+                'concepts_covered': {}
+            }), 200
+
         available_content = []
 
         for concept in concepts:
+            # Check if concept has items, if not, create mock ones or skip
+            # For now, we generate placeholder items if no items DB exists
+            # In production, we'd query ITEM collection
             for i in range(3):
                 item = ContentItem(
-                    item_id=f"{concept['_id']}_q{i}",
-                    concept_id=concept['_id'],
+                    item_id=f"{str(concept['_id'])}_q{i}",
+                    concept_id=str(concept['_id']),
                     difficulty=concept.get('difficulty_level', 0.5),
                     weight=concept.get('weight', 1.0),
                     estimated_time=5

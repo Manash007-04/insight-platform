@@ -84,24 +84,19 @@ const StudentPractice = () => {
                 const concepts = masteryRes.data.concepts || [];
                 const nodes = concepts.map((concept, index) => {
                     const slot = GRAPH_SLOTS[index % GRAPH_SLOTS.length];
-                    let status = 'locked';
-                    if (concept.mastery_score >= 85) status = 'mastered';
-                    else if (concept.mastery_score > 0) status = 'in_progress';
-                    // Simple logic: unlock if previous concept has score > 50 (chained)
-                    // Or if it has any score. For now, assuming if it's in the list it's unlocked or in progress.
-                    // The backend returns only concepts with some interaction usually, or all if initialized.
-                    // Let's assume if score > 0 it's unlocked.
-                    if (concept.mastery_score === 0) status = 'locked';
-                    // To make it look better for demo, let's unlock "next" empty ones if we have few
-                    if (concept.mastery_score === 0 && index === 0) status = 'in_progress'; // Always unlock first
+                    // trust backend status
+                    let status = concept.status || 'locked';
+
+                    // Map 'available' to 'in_progress' visually if we want them clickable, 
+                    // or keep 'available' and style it specifically.
+                    // Let's treat 'available' similar to 'in_progress' but gray/blue?
+                    // For now, let's map 'available' to 'available' and update styles.
 
                     return {
                         id: concept.concept_id,
                         title: concept.concept_name,
                         status: status,
                         score: Math.round(concept.mastery_score),
-                        x: slot.x,
-                        y: slot.y,
                         // Add some randomness to bubbles so they don't look too rigid
                         x: slot.x + (Math.random() * 5 - 2.5),
                         y: slot.y + (Math.random() * 5 - 2.5)
@@ -113,7 +108,7 @@ const StudentPractice = () => {
                 console.info('[PRACTICE] Nodes and recommendations set:', {
                     node_count: nodes.length,
                     mastered: nodes.filter(n => n.status === 'mastered').length,
-                    in_progress: nodes.filter(n => n.status === 'in_progress').length,
+                    available: nodes.filter(n => n.status === 'available' || n.status === 'in_progress').length,
                     locked: nodes.filter(n => n.status === 'locked').length
                 });
 
@@ -175,7 +170,7 @@ const StudentPractice = () => {
             // 3. Update local graph state
             setMasteryNodes(prev => prev.map(node =>
                 node.id === currentItem.concept_id
-                    ? { ...node, score: Math.round(masteryResponse.data.mastery_score) }
+                    ? { ...node, score: Math.round(masteryResponse.data.mastery_score), status: masteryResponse.data.mastery_score > 0 ? 'in_progress' : node.status }
                     : node
             ));
 
@@ -196,13 +191,14 @@ const StudentPractice = () => {
     };
 
     const handleStartPractice = async () => {
-        console.info('[PRACTICE] Generating practice session:', { student_id: STUDENT_ID });
+        console.info('[PRACTICE] Generating practice session:', { student_id: STUDENT_ID, classroom_id: selectedClass });
         setLoading(true);
 
         try {
             const payload = {
                 student_id: STUDENT_ID,
-                session_duration: 20
+                session_duration: 20,
+                classroom_id: selectedClass
             };
 
             if (selectedNode) {
@@ -322,7 +318,8 @@ const StudentPractice = () => {
                                         className={`absolute w-32 p-3 rounded-xl shadow-lg border-2 flex flex-col items-center justify-center gap-2 transition-all z-10
                          ${node.status === 'mastered' ? 'bg-green-50 border-green-500 text-green-700' :
                                                 node.status === 'in_progress' ? 'bg-yellow-50 border-yellow-500 text-yellow-700' :
-                                                    'bg-gray-100 border-gray-300 text-gray-400 grayscale'}
+                                                    node.status === 'available' ? 'bg-blue-50 border-blue-400 text-blue-700' :
+                                                        'bg-gray-100 border-gray-300 text-gray-400 grayscale'}
                          ${selectedNode?.id === node.id ? 'ring-4 ring-offset-2 ring-blue-200' : ''}
                        `}
                                         style={{ left: `${node.x}%`, top: `${node.y}%` }}
