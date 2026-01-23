@@ -64,6 +64,14 @@ def download_file(filename):
     try:
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         upload_dir = os.path.join(base_dir, 'static', 'uploads')
+        
+        file_path = os.path.join(upload_dir, filename)
+        logger.info(f"Download request | filename: {filename} | looking in: {file_path}")
+        
+        if not os.path.exists(file_path):
+            logger.error(f"File not found on disk: {file_path}")
+            return jsonify({'error': 'File not found on server'}), 404
+            
         return send_from_directory(upload_dir, filename)
     except Exception as e:
         logger.error(f"Download error: {str(e)}")

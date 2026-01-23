@@ -268,6 +268,31 @@ const TeacherAssignment = () => {
                                         <div className="bg-gray-50 p-4 rounded-xl text-gray-700 whitespace-pre-wrap max-h-60 overflow-y-auto mb-4 border border-gray-200">
                                             {selectedSubmission.submission_text || 'No text content'}
                                         </div>
+
+                                        {selectedSubmission.attachments && selectedSubmission.attachments.length > 0 && (
+                                            <div className="mb-4">
+                                                <h4 className="text-xs font-bold text-gray-500 uppercase mb-2">Attachments</h4>
+                                                <div className="space-y-2">
+                                                    {selectedSubmission.attachments.map((att, idx) => (
+                                                        <a
+                                                            key={idx}
+                                                            href={att.url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg hover:border-blue-400 hover:shadow-sm transition-all group"
+                                                        >
+                                                            <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600 group-hover:bg-blue-100 transition-colors">
+                                                                <FileText size={20} />
+                                                            </div>
+                                                            <div className="flex-1 overflow-hidden">
+                                                                <p className="font-bold text-gray-800 text-sm truncate">{att.name || 'Attached File'}</p>
+                                                                <p className="text-xs text-gray-500">Click to view</p>
+                                                            </div>
+                                                        </a>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div>
