@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import DashboardLayout from '../components/DashboardLayout';
 import GamificationBadge from '../components/GamificationBadge';
 import ProgressBar from '../components/ProgressBar';
+import StudentSoftSkillsProfile from '../components/StudentSoftSkillsProfile';
 import { BookOpen, Clock, Calendar, ChevronRight, Compass, Flame, ClipboardList, GraduationCap, AlertCircle, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { masteryAPI, classroomAPI, engagementAPI } from '../services/api';
@@ -278,6 +279,11 @@ const StudentDashboard = () => {
 
                 {/* Lower Section: Recent Activity & Badges */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+                    {/* Soft Skills Profile */}
+                    <div className="lg:col-span-1">
+                        <StudentSoftSkillsProfile studentId={STUDENT_ID} />
+                    </div>
 
                     {/* Recent Activity Feed */}
                     <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-orange-100 overflow-hidden">
