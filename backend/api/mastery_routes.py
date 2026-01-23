@@ -320,13 +320,24 @@ def generate_practice_session():
 
 
         available_content = []
+        concepts_with_content = 0
+        concepts_without_content = []
 
         for concept in concepts:
-            # Try to find real items first
-            real_items = find_many(PRACTICE_ITEMS, {'concept_id': str(concept['_id'])})
-            
+            # Query for real items - ensure exact concept_id match
+            concept_id_str = str(concept['_id'])
+            real_items = find_many(PRACTICE_ITEMS, {'concept_id': concept_id_str})
+
+            logger.info(f"[GENERATE_PRACTICE] Concept '{concept.get('name')}' | concept_id: {concept_id_str} | items_found: {len(real_items)}")
+
             if real_items:
+                concepts_with_content += 1
                 for item_doc in real_items:
+                    # Verify concept_id match to prevent leakage
+                    if str(item_doc.get('concept_id')) != concept_id_str:
+                        logger.warning(f"[GENERATE_PRACTICE] Skipping item {item_doc['_id']} - concept_id mismatch | expected: {concept_id_str} | got: {item_doc.get('concept_id')}")
+                        continue
+
                     # Handle difficulty conversion safely
                     diff_val = item_doc.get('difficulty', 0.5)
                     try:
@@ -342,7 +353,7 @@ def generate_practice_session():
 
                     item = ContentItem(
                         item_id=str(item_doc['_id']),
-                        concept_id=str(concept['_id']),
+                        concept_id=concept_id_str,
                         difficulty=diff_val,
                         weight=float(concept.get('weight', 1.0)),
                         estimated_time=5,
@@ -352,35 +363,32 @@ def generate_practice_session():
                         explanation=item_doc.get('explanation')
                     )
                     available_content.append(item)
+                    logger.info(f"[GENERATE_PRACTICE] Added item | item_id: {item_doc['_id']} | concept: {concept.get('name')} | question: {item_doc.get('question', '')[:50]}...")
             else:
-                # Fallback to placeholders if no real items
-                for i in range(3):
-                    # Safe difficulty conversion for fallback items
-                    diff_val = concept.get('difficulty_level', 0.5)
-                    try:
-                         if isinstance(diff_val, str):
-                             if diff_val.lower() == 'easy': diff_val = 0.3
-                             elif diff_val.lower() == 'medium': diff_val = 0.5
-                             elif diff_val.lower() == 'hard': diff_val = 0.7
-                             else: diff_val = float(diff_val)
-                         else:
-                             diff_val = float(diff_val)
-                    except:
-                        diff_val = 0.5
+                # No real items found - log but do NOT generate fallback placeholders
+                concepts_without_content.append(concept.get('name', 'Unknown'))
+                logger.warning(f"[GENERATE_PRACTICE] No practice items found for concept '{concept.get('name')}' | concept_id: {concept_id_str}")
 
-                    item = ContentItem(
-                        item_id=f"{str(concept['_id'])}_q{i}",
-                        concept_id=str(concept['_id']),
-                        difficulty=diff_val,
-                        weight=float(concept.get('weight', 1.0)),
-                    estimated_time=5,
-                    question=f"Question about {concept.get('concept_name', 'topic')} - Part {i+1}",
-                    options=["Option A", "Option B", "Option C", "Option D"],
-                    correct_answer="Option A",
-                    explanation="This is a placeholder explanation for the correct answer."
-                )
-                available_content.append(item)
-        logger.info(f"[GENERATE_PRACTICE] Content items created | count: {len(available_content)}")
+        logger.info(f"[GENERATE_PRACTICE] Content collection complete | total_items: {len(available_content)} | concepts_with_content: {concepts_with_content} | concepts_without_content: {len(concepts_without_content)}")
+
+        if concepts_without_content:
+            logger.warning(f"[GENERATE_PRACTICE] Concepts missing practice items: {', '.join(concepts_without_content)}")
+
+        # If no content available at all, return empty session
+        if not available_content:
+            logger.warning(f"[GENERATE_PRACTICE] No practice items available for classroom {classroom_id} - returning empty session")
+            return jsonify({
+                'session_id': str(ObjectId()),
+                'student_id': data.student_id,
+                'content_items': [],
+                'total_items': 0,
+                'estimated_duration': 0,
+                'cognitive_load': 0,
+                'load_status': 'NO_CONTENT',
+                'zpd_alignment': 'None',
+                'concepts_covered': {},
+                'message': f'No practice content available. {len(concepts_without_content)} concept(s) need questions: {", ".join(concepts_without_content[:3])}'
+            }), 200
 
         logger.info(f"[GENERATE_PRACTICE] Calling adaptive engine | student_id: {data.student_id} | session_duration: {data.session_duration}")
         session = adaptive_engine.generate_practice_session(
