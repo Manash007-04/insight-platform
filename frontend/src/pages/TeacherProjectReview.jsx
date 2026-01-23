@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import DashboardLayout from '../components/DashboardLayout';
+import TeacherLayout from '../components/TeacherLayout';
 import { useAuth } from '../contexts/AuthContext';
 import { classroomAPI, projectsAPI } from '../services/api';
 import { toast } from 'react-hot-toast';
@@ -31,11 +31,17 @@ const TeacherProjectReview = () => {
                         const projectsRes = await projectsAPI.getClassroomProjects(classroom.classroom_id);
                         const projects = projectsRes.data.projects || [];
 
-                        // 3. Get milestones for each project
+                        // 3. Get milestones AND project details (for team names) for each project
                         const milestonePromises = projects.map(async (project) => {
                             try {
-                                const milestonesRes = await projectsAPI.getProjectMilestones(project.project_id);
+                                const [milestonesRes, detailsRes] = await Promise.all([
+                                    projectsAPI.getProjectMilestones(project.project_id),
+                                    projectsAPI.getProjectDetails(project.project_id)
+                                ]);
+
                                 const milestones = milestonesRes.data || [];
+                                const teams = detailsRes.data.teams || [];
+                                const teamMap = teams.reduce((acc, t) => ({ ...acc, [t.team_id]: t.team_name }), {});
 
                                 // Filter for pending approval
                                 const pending = milestones.filter(m => m.pending_approval);
@@ -43,6 +49,7 @@ const TeacherProjectReview = () => {
                                 // Enrich with project context
                                 return pending.map(m => ({
                                     ...m,
+                                    team_name: teamMap[m.submitted_by_team] || 'Unknown Team',
                                     project: {
                                         project_id: project.project_id,
                                         title: project.title,
@@ -120,15 +127,15 @@ const TeacherProjectReview = () => {
     };
 
     if (loading) return (
-        <DashboardLayout>
+        <TeacherLayout>
             <div className="flex justify-center items-center h-full">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div>
             </div>
-        </DashboardLayout>
+        </TeacherLayout>
     );
 
     return (
-        <DashboardLayout>
+        <TeacherLayout>
             <div className="p-6">
                 <div className="mb-8">
                     <h1 className="text-3xl font-extrabold text-gray-800 flex items-center gap-3">
@@ -164,8 +171,7 @@ const TeacherProjectReview = () => {
                                                         <Clock size={12} /> Pending Review
                                                     </span>
                                                     <span className="text-sm text-gray-400 font-medium">
-                                                        Failed to fetch team name (API Limitation)
-                                                        {/* Ideally we fetch and show team name here */}
+                                                        Team: <span className="text-gray-600 font-bold">{milestone.team_name}</span>
                                                     </span>
                                                 </div>
 
@@ -210,7 +216,7 @@ const TeacherProjectReview = () => {
                     )}
                 </div>
             </div>
-        </DashboardLayout>
+        </TeacherLayout>
     );
 };
 

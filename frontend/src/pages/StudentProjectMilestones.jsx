@@ -30,24 +30,68 @@ const StudentProjectMilestones = () => {
                 const currentTeam = teams[0];
                 setTeam(currentTeam);
 
-                // Fetch team progress to get milestones status
-                const progressRes = await projectsAPI.getTeamProgress(currentTeam.team_id || currentTeam._id);
-                const progress = progressRes.data;
+                // Fetch milestones (Truth) and Progress (State) in parallel
+                try {
+                    const [milestonesRes, progressRes] = await Promise.allSettled([
+                        projectsAPI.getProjectMilestones(currentTeam.project_id),
+                        projectsAPI.getTeamProgress(currentTeam.team_id || currentTeam._id)
+                    ]);
 
-                // Merge unlocked/locked milestones if API returns them directly, 
-                // OR fetch milestones separately and map progress
-                // Let's assume progress endpoint returns full milestone info as per backend route logic
-                const allMilestones = [
-                    ...(progress.unlocked_milestones || []),
-                    ...(progress.locked_milestones || [])
-                ].sort((a, b) => a.order - b.order);
+                    const projectMilestones = milestonesRes.status === 'fulfilled' ? (milestonesRes.value.data || []) : [];
+                    const progress = progressRes.status === 'fulfilled' ? progressRes.value.data : null;
 
-                setMilestones(allMilestones);
+                    console.info('[STUDENT_MILESTONES] Data resources loaded:', {
+                        milestones_found: projectMilestones.length,
+                        progress_found: !!progress
+                    });
 
-                console.info('[STUDENT_MILESTONES] Data loaded:', {
-                    team_id: currentTeam.team_id,
-                    milestone_count: allMilestones.length
-                });
+                    // Merge Logic: Overlay progress status onto project milestones
+                    const mergedMilestones = projectMilestones.map((m, index) => {
+                        // Default state if no progress tracking
+                        let isCompleted = false;
+                        let isPending = false;
+                        let isLocked = index > 0; // Lock everything except first by default
+
+                        if (progress) {
+                            // Find matching status in progress data
+                            // Note: Progress usually returns lists of unlocked/locked, we can check IDs
+                            const unlockedIds = (progress.unlocked_milestones || []).map(x => x.milestone_id);
+                            const lockedIds = (progress.locked_milestones || []).map(x => x.milestone_id);
+
+                            // Check explicit status on milestone object from progress if available, 
+                            // OR infer from lists
+                            const inUnlocked = unlockedIds.includes(m.milestone_id);
+
+                            // If we have direct status from the milestone fetch:
+                            if (m.is_completed) isCompleted = true;
+                            if (m.pending_approval) isPending = true;
+
+                            // Unlock logic
+                            isLocked = !inUnlocked && !isCompleted && !isPending;
+
+                            // Fallback: if progress tracks index
+                            if (progress.current_milestone_index !== undefined) {
+                                if (index <= progress.current_milestone_index) isLocked = false;
+                                if (index < progress.milestones_completed) isCompleted = true;
+                            }
+                        }
+
+                        return {
+                            ...m,
+                            is_completed: isCompleted,
+                            pending_approval: isPending,
+                            is_locked: isLocked
+                        };
+                    });
+
+                    setMilestones(mergedMilestones);
+
+                } catch (innerErr) {
+                    console.error("Error creating merged view:", innerErr);
+                    // Fallback to simple milestone list if merge fails
+                    const res = await projectsAPI.getProjectMilestones(currentTeam.project_id);
+                    setMilestones(res.data || []);
+                }
 
             } catch (err) {
                 console.error("Failed to load project milestones", err);
