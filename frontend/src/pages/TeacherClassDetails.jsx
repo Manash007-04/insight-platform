@@ -310,6 +310,14 @@ const TeacherClassDetails = () => {
                                                 <button className="hover:text-teal-600 transition-colors flex items-center gap-1">
                                                     <MessageSquare size={16} /> {post.comment_count} Comments
                                                 </button>
+                                                {post.post_type === 'assignment' && (
+                                                    <NavLink
+                                                        to={`/teacher/assignment/${post.post_id}`}
+                                                        className="hover:text-teal-600 transition-colors flex items-center gap-1 ml-auto text-teal-600"
+                                                    >
+                                                        <FileText size={16} /> View Submissions
+                                                    </NavLink>
+                                                )}
                                             </div>
                                         </div>
                                     ))}
