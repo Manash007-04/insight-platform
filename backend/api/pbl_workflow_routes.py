@@ -1504,8 +1504,24 @@ def get_team_progress(team_id):
     try:
         logger.info(f"[GET_TEAM_PROGRESS] Request received | team_id: {team_id}")
         progress = find_one(TEAM_PROGRESS, {'team_id': team_id})
+        
+        # Lazy Initialization: If progress doesn't exist, create it on the fly
         if not progress:
-            logger.warning(f"[GET_TEAM_PROGRESS] Team progress not found | team_id: {team_id}")
+            logger.info(f"[GET_TEAM_PROGRESS] Progress missing, attempting lazy init | team_id: {team_id}")
+            team = find_one(TEAMS, {'_id': team_id})
+            if not team:
+                return jsonify({'error': 'Team not found'}), 404
+                
+            project_id = team.get('project_id')
+            if project_id:
+                initialize_team_progress(team_id, project_id)
+                progress = find_one(TEAM_PROGRESS, {'team_id': team_id})
+                logger.info(f"[GET_TEAM_PROGRESS] Lazy init successful | team_id: {team_id} | project_id: {project_id}")
+            else:
+                logger.warning(f"[GET_TEAM_PROGRESS] Cannot lazy init: Team has no project_id | team_id: {team_id}")
+
+        if not progress:
+            logger.warning(f"[GET_TEAM_PROGRESS] Team progress not found (after init attempt) | team_id: {team_id}")
             return jsonify({'error': 'Team progress not found'}), 404
 
         logger.info(f"[GET_TEAM_PROGRESS] Progress found | team_id: {team_id} | level: {progress.get('current_level')} | xp: {progress.get('total_xp')} | completion: {progress.get('completion_percentage')}%")
