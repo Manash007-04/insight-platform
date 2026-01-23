@@ -6,7 +6,7 @@ import ProgressBar from '../components/ProgressBar';
 import StudentSoftSkillsProfile from '../components/StudentSoftSkillsProfile';
 import { BookOpen, Clock, Calendar, ChevronRight, Compass, Flame, ClipboardList, GraduationCap, AlertCircle, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { masteryAPI, classroomAPI, engagementAPI } from '../services/api';
+import { masteryAPI, classroomAPI, engagementAPI, projectsAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
 const StudentDashboard = () => {
@@ -21,6 +21,7 @@ const StudentDashboard = () => {
         streak: 0,
         masteryScore: 0,
         pendingAssignments: 0,
+        activeProject: null,
         nextClass: {
             subject: 'No Upcoming Classes',
             time: '--:--',
@@ -216,6 +217,35 @@ const StudentDashboard = () => {
 
                 {/* Quick Stats Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Active Project Card */}
+                    <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        className="bg-white p-6 rounded-2xl shadow-sm border border-orange-100 relative group"
+                    >
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="bg-orange-100 p-3 rounded-xl text-orange-600">
+                                <Flame size={24} />
+                            </div>
+                            <h3 className="font-bold text-gray-700">Active Project</h3>
+                        </div>
+                        {data.activeProject ? (
+                            <>
+                                <h4 className="text-xl font-extrabold text-gray-800 mb-1 truncate">{data.activeProject.title}</h4>
+                                <p className="text-xs text-green-600 font-bold uppercase tracking-wider mb-4 flex items-center gap-1">
+                                    <Clock size={12} /> {data.activeProject.stage} Phase
+                                </p>
+                                <Link to="/student/projects" className="w-full mt-2 py-2 bg-orange-500 text-white font-bold rounded-lg hover:bg-orange-600 transition-colors text-sm flex justify-center items-center shadow-md shadow-orange-200">
+                                    Continue Mission
+                                </Link>
+                            </>
+                        ) : (
+                            <div className="text-center py-4">
+                                <p className="text-gray-400 italic text-sm">No active mission.</p>
+                                <Link to="/student/classes" className="text-orange-500 text-xs font-bold hover:underline mt-2 block">Browse Classes</Link>
+                            </div>
+                        )}
+                    </motion.div>
+
                     {/* Mastery Card */}
                     <motion.div
                         whileHover={{ scale: 1.02 }}
