@@ -248,12 +248,32 @@ const StudentClasses = () => {
                                                     <span className="text-sm text-blue-800 font-medium flex items-center gap-2">
                                                         <Clock size={16} /> Due: {post.assignment_details.due_date ? new Date(post.assignment_details.due_date).toLocaleDateString() : 'No Due Date'}
                                                     </span>
-                                                    <button
-                                                        onClick={() => handleStartAssignment(post.post_id)}
-                                                        className="bg-blue-600 text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                                                    >
-                                                        Start Now
-                                                    </button>
+                                                    {post.current_user_submission && ['turned_in', 'graded', 'returned'].includes(post.current_user_submission.status) ? (
+                                                        <div className="flex items-center gap-2">
+                                                            {post.current_user_submission.grade !== undefined && post.current_user_submission.grade !== null ? (
+                                                                <span className="font-bold text-green-600 bg-green-100 px-3 py-1 rounded-lg">
+                                                                    {post.current_user_submission.grade}/{post.assignment_details.points || 100}
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-green-600 font-bold text-sm bg-green-100 px-3 py-1 rounded-lg">
+                                                                    Submitted
+                                                                </span>
+                                                            )}
+                                                            <button
+                                                                onClick={() => handleStartAssignment(post.post_id)}
+                                                                className="text-blue-600 text-xs font-bold hover:underline"
+                                                            >
+                                                                View
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => handleStartAssignment(post.post_id)}
+                                                            className="bg-blue-600 text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                                                        >
+                                                            Start Now
+                                                        </button>
+                                                    )}
                                                 </div>
                                             )}
 
