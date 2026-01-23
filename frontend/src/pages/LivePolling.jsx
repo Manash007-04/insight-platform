@@ -234,6 +234,7 @@ const LivePollingSystem = () => {
         setActivePoll(null);
       } catch (error) {
         console.error("Failed to close poll:", error);
+        alert("Failed to close poll. Please try again.");
       }
     }
   };
@@ -254,7 +255,22 @@ const LivePollingSystem = () => {
           <p className="text-gray-500">Launch anonymous polls to gauge real-time understanding.</p>
         </div>
 
-        {/* Create Poll Section */}
+        {/* Class Selector - Always Visible */}
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm mb-6">
+          <label className="block text-sm font-bold text-gray-700 mb-2">Select Classroom</label>
+          <select
+            value={newPoll.classroom_id}
+            onChange={(e) => setNewPoll({ ...newPoll, classroom_id: e.target.value })}
+            className="w-full px-5 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900"
+          >
+            {classes.length === 0 && <option value="">No classes found</option>}
+            {classes.map(cls => (
+              <option key={cls.classroom_id} value={cls.classroom_id}>{cls.class_name}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Create Poll Section (only if no active poll) */}
         {!activePoll && (
           <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
             <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
@@ -263,21 +279,6 @@ const LivePollingSystem = () => {
             </h2>
 
             <div className="space-y-6 max-w-2xl">
-              {/* Class Selector */}
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Select Classroom</label>
-                <select
-                  value={newPoll.classroom_id}
-                  onChange={(e) => setNewPoll({ ...newPoll, classroom_id: e.target.value })}
-                  className="w-full px-5 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900"
-                >
-                  {classes.length === 0 && <option value="">No classes found</option>}
-                  {classes.map(cls => (
-                    <option key={cls.classroom_id} value={cls.classroom_id}>{cls.class_name}</option>
-                  ))}
-                </select>
-              </div>
-
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">Question</label>
                 <input
