@@ -268,20 +268,47 @@ const TeacherClassDetails = () => {
                                     {stream.map(post => (
                                         <div key={post.post_id} className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
                                             <div className="flex items-center gap-3 mb-4">
-                                                <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center font-bold text-gray-500">
-                                                    {post.author?.author_name?.charAt(0) || 'U'}
+                                                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${post.post_type === 'assignment' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'
+                                                    }`}>
+                                                    {post.post_type === 'assignment' ? <FileText size={20} /> : (post.author?.author_name?.charAt(0) || 'U')}
                                                 </div>
                                                 <div>
-                                                    <h3 className="font-bold text-gray-800">{post.author?.author_name || 'Unknown User'}</h3>
-                                                    <p className="text-xs text-gray-400">{new Date(post.created_at).toLocaleDateString()}</p>
+                                                    <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                                                        {post.author?.author_name || 'Unknown User'}
+                                                        {post.post_type === 'assignment' && (
+                                                            <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full uppercase tracking-wider">Assignment</span>
+                                                        )}
+                                                    </h3>
+                                                    <p className="text-xs text-gray-400">{new Date(post.created_at).toLocaleDateString()} • {new Date(post.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                                                 </div>
                                             </div>
-                                            <div className="text-gray-700 whitespace-pre-wrap">
+
+                                            {post.post_type === 'assignment' && post.title && (
+                                                <h4 className="text-xl font-bold text-gray-800 mb-2">{post.title}</h4>
+                                            )}
+
+                                            <div className="text-gray-700 whitespace-pre-wrap mb-4">
                                                 {post.content}
                                             </div>
-                                            <div className="mt-4 pt-4 border-t border-gray-50 flex gap-4 text-sm font-bold text-gray-500">
-                                                <button className="hover:text-teal-600 transition-colors">
-                                                    {post.comment_count} Comments
+
+                                            {post.post_type === 'assignment' && post.assignment_details && (
+                                                <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-4 flex gap-6 text-sm">
+                                                    <div>
+                                                        <span className="block text-xs font-bold text-blue-400 uppercase">Due Date</span>
+                                                        <span className="font-bold text-blue-800">
+                                                            {post.assignment_details.due_date ? new Date(post.assignment_details.due_date).toLocaleDateString() : 'No Due Date'}
+                                                        </span>
+                                                    </div>
+                                                    <div>
+                                                        <span className="block text-xs font-bold text-blue-400 uppercase">Points</span>
+                                                        <span className="font-bold text-blue-800">{post.assignment_details.points || 100} pts</span>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            <div className="pt-4 border-t border-gray-50 flex gap-4 text-sm font-bold text-gray-500">
+                                                <button className="hover:text-teal-600 transition-colors flex items-center gap-1">
+                                                    <MessageSquare size={16} /> {post.comment_count} Comments
                                                 </button>
                                             </div>
                                         </div>
