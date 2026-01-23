@@ -75,14 +75,18 @@ const StudentClasses = () => {
             try {
                 // Fetch all polls for class, look for active one
                 // Optimally we'd have an endpoint just for 'active poll', but filtering is fine for now
-                const res = await pollsAPI.getClassPolls(selectedClass.classroom_id);
+                const res = await pollsAPI.getClassPolls(selectedClass.classroom_id, {
+                    student_id: STUDENT_ID,
+                    active_only: true
+                });
                 const active = res.data.find(p => p.is_active);
 
                 // Reset submission state if poll changes
                 if (active?.poll_id !== activePoll?.poll_id) {
-                    setPollSubmitted(false);
-                    // Check if already responded (backend could tell us, but for now client-side logic is ok if we persist it or check API)
-                    // TODO: Check if user already responded to avoid re-showing logic or use API error handling
+                    setPollSubmitted(active?.has_responded || false);
+                } else if (active?.has_responded && !pollSubmitted) {
+                    // Update state if we learned we responded (e.g. from background refresh)
+                    setPollSubmitted(true);
                 }
                 setActivePoll(active || null);
             } catch (err) {
@@ -278,9 +282,9 @@ const StudentClasses = () => {
                                             <h3>Live Poll: {activePoll.question}</h3>
                                         </div>
 
-                                        {!pollSubmitted && activePoll.options && !pollSubmitted ? (
+                                        {!pollSubmitted ? (
                                             <div className="space-y-3 mt-4">
-                                                {activePoll.options.map((option, idx) => (
+                                                {activePoll.options?.map((option, idx) => (
                                                     <button
                                                         key={idx}
                                                         onClick={() => handleSubmitPoll(option)}
@@ -288,7 +292,7 @@ const StudentClasses = () => {
                                                     >
                                                         {option}
                                                     </button>
-                                                ))}
+                                                )) || <p className="text-gray-500 italic text-center">Loading options...</p>}
                                             </div>
                                         ) : (
                                             <div className="mt-4 p-4 bg-teal-100 rounded-lg text-center text-teal-800 font-bold">
