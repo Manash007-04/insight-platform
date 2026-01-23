@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { socket } from './services/api';
 import { AuthProvider } from './contexts/AuthContext';
+import { Toaster } from 'react-hot-toast';
 
 // Import components
 import TeacherDashboard from './pages/TeacherDashboard';
@@ -27,6 +28,7 @@ function MainLayout({ isConnected }) {
 
   return (
     <>
+      <Toaster position="top-right" />
       {/* Navigation - Hidden on StartPage, Student Portal, AND Teacher Portal (which has its own layout) */}
       {!isStartPage && !location.pathname.startsWith('/student') && !location.pathname.startsWith('/teacher') && (
         <nav className="navbar">
@@ -56,6 +58,7 @@ function MainLayout({ isConnected }) {
         <Route path="/classroom/:classroomId" element={<ProtectedRoute requiredRole="teacher"><TeacherClassDetails /></ProtectedRoute>} />
         <Route path="/teacher/analytics" element={<ProtectedRoute requiredRole="teacher"><TeacherAnalytics /></ProtectedRoute>} />
         <Route path="/teacher/polls" element={<ProtectedRoute requiredRole="teacher"><LivePolling /></ProtectedRoute>} />
+        <Route path="/teacher/projects" element={<ProtectedRoute requiredRole="teacher"><PBLWorkspace /></ProtectedRoute>} />
         <Route path="/teacher/projects" element={<ProtectedRoute requiredRole="teacher"><PBLWorkspace /></ProtectedRoute>} />
         <Route path="/teacher/templates" element={<ProtectedRoute requiredRole="teacher"><TemplateLibrary /></ProtectedRoute>} />
 
