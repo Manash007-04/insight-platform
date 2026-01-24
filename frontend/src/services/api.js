@@ -208,6 +208,7 @@ export const dashboardAPI = {
   getUnifiedTrends: (days) => api.get('/dashboard/unified/trends', { params: { days } }),
   dismissStudentAlerts: (studentId) => api.post(`/engagement/alerts/student/${studentId}/dismiss`),
   deleteIntervention: (interventionId) => api.delete(`/dashboard/interventions/${interventionId}`),
+  getAdminTeacherStats: () => api.get('/dashboard/admin/teachers'),
 };
 
 export const attendanceAPI = {
