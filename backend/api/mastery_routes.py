@@ -168,17 +168,48 @@ def get_student_mastery(student_id):
                     'classroom_id': concept.get('classroom_id'),
                     'mastery_score': mastery_score,
                     'status': status,
+                    'level': concept.get('level', 1),
                     'created_at': (concept.get('created_at').isoformat() if hasattr(concept.get('created_at'), 'isoformat') else concept.get('created_at')) if concept.get('created_at') else None,
                     'last_assessed': (record.get('last_assessed').isoformat() if hasattr(record.get('last_assessed'), 'isoformat') else record.get('last_assessed')) if record.get('last_assessed') else None,
                     'times_assessed': record.get('times_assessed', 0),
                     'learning_velocity': record.get('learning_velocity', 0)
                 })
 
+        # Calculate Level Status (Unlock Logic)
+        # Rule: Level N is unlocked if avg mastery of Level N-1 >= 60%
+        level_status = {}
+        levels = sorted(list(set(c['level'] for c in concepts_data)))
+        
+        # Level 1 is always available
+        level_status[1] = {'status': 'available', 'avg_mastery': 100}
+
+        for lvl in levels:
+            if lvl == 1: continue
+            
+            # Check previous level
+            prev_level_concepts = [c for c in concepts_data if c['level'] == lvl - 1]
+            if not prev_level_concepts:
+                # If no concepts in prev level, assume unlocked (or locked, tailored choice)
+                # Let's assume unlocked to avoid blocking if gaps exist
+                level_status[lvl] = {'status': 'available', 'avg_mastery': 0}
+                continue
+
+            avg_prev = sum(c['mastery_score'] for c in prev_level_concepts) / len(prev_level_concepts)
+            
+            is_unlocked = avg_prev >= 50.0 # Threshold for unlocking next level
+            level_status[lvl-1]['avg_mastery'] = avg_prev
+            
+            level_status[lvl] = {
+                'status': 'available' if is_unlocked else 'locked',
+                'avg_mastery': 0 # Will be calc in next iter if needed
+            }
+
         overall_mastery = sum(c['mastery_score'] for c in concepts_data) / len(concepts_data) if concepts_data else 0
         
         return jsonify({
             'student_id': student_id,
             'concepts': concepts_data,
+            'level_status': level_status,
             'overall_mastery': round(overall_mastery, 2)
         }), 200
 

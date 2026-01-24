@@ -34,41 +34,31 @@ const StudentPractice = () => {
         { x: 30, y: 80 }, { x: 70, y: 20 }, { x: 90, y: 40 }
     ];
 
-    // Helper function to calculate nodes state (moved inside to access GRAPH_SLOTS, or passed as arg)
-    const calculateGraphNodes = (rawConcepts) => {
-        // Sort concepts by creation date (chronological)
+    // Helper function to calculate nodes state
+    const calculateGraphNodes = (rawConcepts, levelStatus = {}) => {
+        // Sort concepts by Level first, then Creation Date
         const sortedConcepts = [...rawConcepts].sort((a, b) => {
-            if (a.created_at && b.created_at) {
-                return new Date(a.created_at) - new Date(b.created_at);
-            }
-            // Fallback to name if date missing
+            const levelA = a.level || 1;
+            const levelB = b.level || 1;
+            if (levelA !== levelB) return levelA - levelB;
+            if (a.created_at && b.created_at) return new Date(a.created_at) - new Date(b.created_at);
             return (a.concept_name || '').localeCompare(b.concept_name || '');
         });
 
         return sortedConcepts.map((concept, index) => {
-            const slot = GRAPH_SLOTS[index % GRAPH_SLOTS.length];
-
-            // Locking Logic
-            let isLocked = false;
-            // First concept is always unlocked. Others depend on previous mastery.
-            if (index > 0) {
-                const prevConcept = sortedConcepts[index - 1];
-                // Unlock if previous concept has been attempted (score > 0)
-                if ((Number(prevConcept.mastery_score) || 0) <= 0) {
-                    isLocked = true;
-                }
-            }
+            const level = concept.level || 1;
+            const isLevelLocked = levelStatus[level]?.status === 'locked';
 
             let status = concept.status || 'available';
 
-            if (isLocked) {
+            if (isLevelLocked) {
                 status = 'locked';
             } else if (status === 'locked') {
-                // Un-lock if our local logic says it's fine
+                // Backend says unlocked, but local legacy status was locked
                 status = 'available';
             }
 
-            // If mastery >= 85, force status to 'mastered' visually
+            // Force Mastered visual
             if ((concept.mastery_score || 0) >= 85) {
                 status = 'mastered';
             }
@@ -76,13 +66,11 @@ const StudentPractice = () => {
             return {
                 id: concept.concept_id,
                 title: concept.concept_name,
+                level: level,
                 status: status,
                 score: Math.round(concept.mastery_score || 0),
-                // Preserve existing random offset if possible? 
-                // For simplicity, we regenerate. Ideally we'd map by ID.
-                x: slot.x + (Math.random() * 5 - 2.5),
-                y: slot.y + (Math.random() * 5 - 2.5),
-                // Keep raw object for updates
+                x: 0, // Will be handled by renderer or grid layout
+                y: 0,
                 _raw: concept
             };
         });
@@ -129,32 +117,22 @@ const StudentPractice = () => {
                 ]);
 
                 const [masteryRes, recsRes] = await Promise.race([dataPromise, timeoutPromise]);
-                console.info('[PRACTICE] Mastery data retrieved:', {
-                    concepts_count: masteryRes.data.concepts?.length || 0,
-                    overall_mastery: masteryRes.data.overall_mastery,
-                    recommendations_count: recsRes.data.recommendations?.length || 0
-                });
 
                 const concepts = masteryRes.data.concepts || [];
-                // Calculate nodes using shared logic
-                const nodes = calculateGraphNodes(concepts);
+                const levelStatus = masteryRes.data.level_status || {};
+
+                // Calculate nodes using shared logic with Level Status
+                const nodes = calculateGraphNodes(concepts, levelStatus);
 
                 setMasteryNodes(nodes);
                 setRecommendations(recsRes.data.recommendations || []);
-                console.info('[PRACTICE] Nodes and recommendations set:', {
-                    node_count: nodes.length,
-                    mastered: nodes.filter(n => n.status === 'mastered').length,
-                    available: nodes.filter(n => n.status === 'available' || n.status === 'in_progress').length,
-                    locked: nodes.filter(n => n.status === 'locked').length
+                console.info('[PRACTICE] Nodes set:', {
+                    count: nodes.length,
+                    levels: Object.keys(levelStatus)
                 });
 
             } catch (err) {
-                console.error("[PRACTICE] Error loading practice data:", {
-                    error: err.message,
-                    response: err.response?.data,
-                    status: err.response?.status,
-                    student_id: STUDENT_ID
-                });
+                console.error("[PRACTICE] Error loading practice data:", err);
                 setError(`Failed to load mastery path: ${err.message}`);
                 toast.error(`Error loading practice data: ${err.message}`);
             } finally {
@@ -352,35 +330,60 @@ const StudentPractice = () => {
                         </svg>
 
                         {/* Nodes */}
-                        <div className="relative w-full h-full max-w-2xl max-h-2xl">
+                        <div className="relative w-full h-full max-w-4xl mx-auto py-8">
                             {masteryNodes.length === 0 ? (
                                 <div className="absolute inset-0 flex items-center justify-center text-gray-400 flex-col">
                                     <Target size={48} className="mb-4 opacity-20" />
                                     <p>No mastery data yet. Complete assignments to see your progress!</p>
                                 </div>
                             ) : (
-                                masteryNodes.map((node) => (
-                                    <motion.button
-                                        key={node.id}
-                                        whileHover={{ scale: 1.1 }}
-                                        whileTap={{ scale: 0.9 }}
-                                        onClick={() => setSelectedNode(node)}
-                                        className={`absolute w-32 p-3 rounded-xl shadow-lg border-2 flex flex-col items-center justify-center gap-2 transition-all z-10
-                         ${node.status === 'mastered' ? 'bg-green-50 border-green-500 text-green-700' :
-                                                node.status === 'in_progress' ? 'bg-yellow-50 border-yellow-500 text-yellow-700' :
-                                                    node.status === 'available' ? 'bg-blue-50 border-blue-400 text-blue-700' :
-                                                        'bg-gray-100 border-gray-300 text-gray-400 grayscale'}
-                         ${selectedNode?.id === node.id ? 'ring-4 ring-offset-2 ring-blue-200' : ''}
-                       `}
-                                        style={{ left: `${node.x}%`, top: `${node.y}%` }}
-                                    >
-                                        {node.status === 'locked' ? <Lock size={20} /> :
-                                            node.status === 'mastered' ? <CheckCircle size={20} /> :
-                                                <Target size={20} />}
-                                        <span className="font-bold text-xs text-center leading-tight">{node.title}</span>
-                                        {node.status !== 'locked' && <span className="text-xs font-mono bg-white/50 px-1 rounded">{node.score}%</span>}
-                                    </motion.button>
-                                ))
+                                // Group by levels for rendering
+                                Array.from(new Set(masteryNodes.map(n => n.level || 1)))
+                                    .sort((a, b) => a - b)
+                                    .map(level => (
+                                        <div key={level} className="mb-12 relative">
+                                            <div className="absolute -left-4 top-0 bottom-0 border-l-2 border-dashed border-gray-200" />
+                                            <div className="flex items-center gap-4 mb-4">
+                                                <div className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-xs font-bold border border-indigo-200 z-10">
+                                                    LEVEL {level}
+                                                </div>
+                                                <div className="h-px bg-gray-200 flex-1" />
+                                            </div>
+
+                                            <div className="flex flex-wrap gap-4 pl-4">
+                                                {masteryNodes.filter(n => (n.level || 1) === level).map(node => (
+                                                    <motion.button
+                                                        key={node.id}
+                                                        whileHover={{ scale: 1.05 }}
+                                                        whileTap={{ scale: 0.95 }}
+                                                        onClick={() => setSelectedNode(node)}
+                                                        className={`w-40 p-3 rounded-xl shadow-sm border-2 flex flex-col items-center justify-center gap-2 transition-all cursor-pointer relative
+                                                          ${node.status === 'mastered' ? 'bg-green-50 border-green-500 text-green-700' :
+                                                                node.status === 'in_progress' ? 'bg-yellow-50 border-yellow-500 text-yellow-700' :
+                                                                    node.status === 'available' ? 'bg-white border-blue-200 hover:border-blue-400 text-blue-700' :
+                                                                        'bg-gray-100 border-gray-200 text-gray-400 grayscale cursor-not-allowed opacity-70'}
+                                                          ${selectedNode?.id === node.id ? 'ring-4 ring-offset-2 ring-blue-200' : ''}
+                                                        `}
+                                                    >
+                                                        {node.status === 'locked' ? <Lock size={20} /> :
+                                                            node.status === 'mastered' ? <CheckCircle size={20} /> :
+                                                                <Target size={20} />}
+
+                                                        <span className="font-bold text-xs text-center leading-tight line-clamp-2">{node.title}</span>
+
+                                                        {node.status !== 'locked' && (
+                                                            <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1 overflow-hidden">
+                                                                <div
+                                                                    className={`h-full ${node.score >= 85 ? 'bg-green-500' : 'bg-blue-500'}`}
+                                                                    style={{ width: `${node.score}%` }}
+                                                                />
+                                                            </div>
+                                                        )}
+                                                    </motion.button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))
                             )}
                         </div>
                     </div>

@@ -30,7 +30,7 @@ const TeacherPracticeManager = () => {
 
     // Concept Form State
     const [showConceptModal, setShowConceptModal] = useState(false);
-    const [conceptForm, setConceptForm] = useState({ id: null, name: '', description: '', subject_area: 'Science', difficulty_level: 0.5 });
+    const [conceptForm, setConceptForm] = useState({ id: null, name: '', description: '', subject_area: 'Science', difficulty_level: 0.5, level: 1 });
 
     // Item Form State
     const [showItemModal, setShowItemModal] = useState(false);
@@ -107,7 +107,8 @@ const TeacherPracticeManager = () => {
             name: concept.name,
             description: concept.description,
             subject_area: concept.subject_area || 'Science',
-            difficulty_level: concept.difficulty_level || 0.5
+            difficulty_level: concept.difficulty_level || 0.5,
+            level: concept.level || 1
         });
         setShowConceptModal(true);
     };
@@ -117,7 +118,7 @@ const TeacherPracticeManager = () => {
             toast.error("Please select a specific class to create a concept");
             return;
         }
-        setConceptForm({ id: null, name: '', description: '', subject_area: 'Science', difficulty_level: 0.5 });
+        setConceptForm({ id: null, name: '', description: '', subject_area: 'Science', difficulty_level: 0.5, level: 1 });
         setShowConceptModal(true);
     };
 
@@ -137,7 +138,12 @@ const TeacherPracticeManager = () => {
     const submitConcept = async (e) => {
         e.preventDefault();
         try {
-            const payload = { ...conceptForm, classroom_id: selectedClass || undefined };
+            const payload = {
+                ...conceptForm,
+                classroom_id: selectedClass || undefined,
+                level: parseInt(conceptForm.level) || 1,
+                difficulty_level: parseFloat(conceptForm.difficulty_level) || 0.5
+            };
             if (conceptForm.id) {
                 await conceptsAPI.updateConcept(conceptForm.id, payload);
                 toast.success("Concept updated");
@@ -284,7 +290,12 @@ const TeacherPracticeManager = () => {
                                     >
                                         <div className="flex justify-between items-start">
                                             <div>
-                                                <h3 className="font-bold text-gray-800 text-sm">{concept.name}</h3>
+                                                <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
+                                                    {concept.name}
+                                                    <span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded border border-indigo-100">
+                                                        Lvl {concept.level || 1}
+                                                    </span>
+                                                </h3>
                                                 <p className="text-xs text-gray-500 line-clamp-2 mt-1">{concept.description}</p>
                                                 <span className="text-[10px] bg-gray-100 px-2 py-0.5 rounded-full mt-2 inline-block text-gray-600">
                                                     {concept.subject_area}
@@ -322,6 +333,9 @@ const TeacherPracticeManager = () => {
                                     <div>
                                         <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                                             {selectedConcept.name}
+                                            <span className="text-xs font-normal bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full border border-indigo-200">
+                                                Level {selectedConcept.level || 1}
+                                            </span>
                                             <span className="text-xs font-normal bg-teal-100 text-teal-800 px-2 py-1 rounded-full">
                                                 Difficulty: {selectedConcept.difficulty_level}
                                             </span>
@@ -428,17 +442,29 @@ const TeacherPracticeManager = () => {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-1">Difficulty (0-1)</label>
-                                    <input
-                                        type="number"
-                                        step="0.1"
-                                        min="0"
-                                        max="1"
-                                        className="w-full p-2 border rounded-lg"
-                                        value={conceptForm.difficulty_level}
-                                        onChange={e => setConceptForm({ ...conceptForm, difficulty_level: parseFloat(e.target.value) })}
-                                    />
+                                    <label className="block text-sm font-bold text-gray-700 mb-1">Level</label>
+                                    <select
+                                        className="w-full p-2 border rounded-lg bg-white"
+                                        value={conceptForm.level}
+                                        onChange={e => setConceptForm({ ...conceptForm, level: parseInt(e.target.value) })}
+                                    >
+                                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(lvl => (
+                                            <option key={lvl} value={lvl}>Level {lvl}</option>
+                                        ))}
+                                    </select>
                                 </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Difficulty (0-1)</label>
+                                <input
+                                    type="number"
+                                    step="0.1"
+                                    min="0"
+                                    max="1"
+                                    className="w-full p-2 border rounded-lg"
+                                    value={conceptForm.difficulty_level}
+                                    onChange={e => setConceptForm({ ...conceptForm, difficulty_level: e.target.value })}
+                                />
                             </div>
                             <button type="submit" className="w-full py-3 bg-teal-600 text-white font-bold rounded-xl hover:bg-teal-700 mt-4">
                                 Save Concept
@@ -520,5 +546,7 @@ const TeacherPracticeManager = () => {
         </TeacherLayout>
     );
 };
+
+
 
 export default TeacherPracticeManager;

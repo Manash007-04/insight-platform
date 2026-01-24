@@ -37,7 +37,8 @@ def get_concepts():
                 'grade_level': concept.get('grade_level'),
                 'description': concept.get('description'),
                 'prerequisites': concept.get('prerequisites', []),
-                'difficulty_level': concept.get('difficulty_level')
+                'difficulty_level': concept.get('difficulty_level'),
+                'level': concept.get('level', 1)
             })
 
         return jsonify(result), 200
@@ -61,6 +62,7 @@ def create_concept():
             'description': data.get('description', ''),
             'prerequisites': data.get('prerequisites', []),
             'difficulty_level': data.get('difficulty_level', 'medium'),
+            'level': data.get('level', 1),
             'created_at': datetime.utcnow(),
             'updated_at': datetime.utcnow()
         }
@@ -84,7 +86,8 @@ def get_concept(concept_id):
             'grade_level': concept.get('grade_level'),
             'description': concept.get('description'),
             'prerequisites': concept.get('prerequisites', []),
-            'difficulty_level': concept.get('difficulty_level')
+            'difficulty_level': concept.get('difficulty_level'),
+            'level': concept.get('level', 1)
         }), 200
     except Exception as e:
         return jsonify({'error': 'Internal server error', 'detail': str(e)}), 500
@@ -106,6 +109,8 @@ def update_concept(concept_id):
             update_data['prerequisites'] = data['prerequisites']
         if 'difficulty_level' in data:
             update_data['difficulty_level'] = data['difficulty_level']
+        if 'level' in data:
+            update_data['level'] = data['level']
 
         if update_data:
             update_data['updated_at'] = datetime.utcnow()

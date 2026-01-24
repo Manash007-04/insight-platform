@@ -102,6 +102,7 @@ class ConceptBase(BaseModel):
     description: Optional[str] = None
     subject_area: Optional[str] = None
     difficulty_level: float = Field(default=0.5, ge=0.0, le=1.0)
+    level: int = Field(default=1, ge=1, le=10)
     weight: float = Field(default=1.0, ge=0.0)
 
 class ConceptResponse(ConceptBase):
