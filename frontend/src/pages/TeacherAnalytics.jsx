@@ -132,12 +132,16 @@ const TeacherAnalytics = () => {
 
     // Process data for charts
     const engagementScores = engagementTrends?.trends?.map(t => t.average_engagement) || [];
-    const participationScores = engagementTrends?.trends?.map(t => t.average_duration_minutes * 2) || []; // Fake participation scaling
+    // Participation score: % of 60-minute class attended (capped at 100%)
+    const participationScores = engagementTrends?.trends?.map(t => Math.min((t.average_duration_minutes / 60) * 100, 100)) || [];
 
     // Calculate simple stats if not available
     const avgMastery = masteryData?.class_average_mastery || 0;
     const engagementIndex = classEngagement?.class_engagement_index || 0;
-    const interventionRate = 12; // Hardcoded for now, or fetch from intervention API
+    // Dynamic intervention rate based on students needing attention
+    const interventionRate = classEngagement?.total_students > 0
+        ? Math.round(((classEngagement?.students_needing_attention?.length || 0) / classEngagement.total_students) * 100)
+        : 0;
 
     // Sort concepts top 5 lowest mastery
     const strugglingConcepts = masteryData?.concept_averages

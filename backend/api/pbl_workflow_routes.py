@@ -722,28 +722,62 @@ def submit_peer_review(team_id):
                 return jsonify({'error': f'Missing required field: {field}'}), 400
 
         # Validate review type
-        valid_types = ['mid-project', 'final']
+        valid_types = ['mid-project', 'final', 'mid_project'] # Added mid_project for frontend compatibility
         if data['review_type'] not in valid_types:
             return jsonify({'error': f'Invalid review_type. Must be one of: {valid_types}'}), 400
 
-        # Validate ratings include all 4 dimensions
-        ratings = data['ratings']
-        for dimension in SOFT_SKILL_DIMENSIONS.keys():
-            if dimension not in ratings:
-                return jsonify({'error': f'Missing rating for dimension: {dimension}'}), 400
+        # Normalize review_type
+        review_type = data['review_type'].replace('_', '-')
 
-            # Validate rating is 1-5 (5-point Likert scale)
-            if not (1 <= ratings[dimension] <= 5):
-                return jsonify({'error': f'Rating for {dimension} must be between 1 and 5'}), 400
+        # Process and validate ratings
+        raw_ratings = data['ratings']
+        processed_ratings = {}
+        detailed_ratings = {}
+
+        for key, value in raw_ratings.items():
+            # Normalize key to uppercase (frontend sends lowercase 'team_dynamics', backend expects 'TEAM_DYNAMICS')
+            dimension_key = key.upper()
+            
+            if dimension_key not in SOFT_SKILL_DIMENSIONS:
+                # Try to map if possible, or skip/error
+                continue
+
+            # Handle detailed breakdown (dictionary) vs flat score
+            if isinstance(value, dict):
+                # Calculate average from the detailed criteria
+                detailed_ratings[dimension_key] = value
+                scores = [v for v in value.values() if isinstance(v, (int, float))]
+                if scores:
+                    avg_score = sum(scores) / len(scores)
+                    # Round to nearest integer for backward compatibility or keep float? 
+                    # Original validation checked for 1-5 integer, but let's allow float 
+                    # and ensure it's within range.
+                    processed_ratings[dimension_key] = round(avg_score, 1) # Keep one decimal for precision
+                else:
+                     return jsonify({'error': f'Invalid detailed ratings for {dimension_key}'}), 400
+            else:
+                # Flat score
+                processed_ratings[dimension_key] = value
+                
+            # Validate final score is 1-5
+            score = processed_ratings[dimension_key]
+            if not (1 <= score <= 5):
+                return jsonify({'error': f'Rating for {dimension_key} must be between 1 and 5'}), 400
+
+        # Ensure all dimensions are present
+        for dimension in SOFT_SKILL_DIMENSIONS.keys():
+            if dimension not in processed_ratings:
+                return jsonify({'error': f'Missing rating for dimension: {dimension}'}), 400
 
         review_doc = {
             '_id': str(ObjectId()),
             'team_id': team_id,
             'reviewer_id': data['reviewer_id'],
             'reviewee_id': data['reviewee_id'],
-            'review_type': data['review_type'],
-            'ratings': ratings,  # {TEAM_DYNAMICS: 4, TEAM_STRUCTURE: 5, ...}
-            'comments': data.get('comments', {}),  # {dimension: comment}
+            'review_type': review_type,
+            'ratings': processed_ratings,  # {TEAM_DYNAMICS: 4.5, ...} - simplified for Aggregation
+            'detailed_ratings': detailed_ratings, # Preservation of rich data
+            'comments': data.get('comments', {}),
             'submitted_at': datetime.utcnow(),
             'is_self_review': data['reviewer_id'] == data['reviewee_id']
         }

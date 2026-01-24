@@ -394,6 +394,10 @@ def get_mastery_heatmap(classroom_id):
         if not classroom:
             return jsonify({'error': 'Classroom not found'}), 404
 
+        # Determine subject area (query param overrides classroom default)
+        if not subject_area:
+            subject_area = classroom.get('subject')
+
         # Get students
         memberships = find_many(
             CLASSROOM_MEMBERSHIPS,
