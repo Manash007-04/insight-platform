@@ -1078,6 +1078,59 @@ def get_teacher_interventions(teacher_id):
         traceback.print_exc()
         return jsonify({'error': 'Internal server error', 'detail': str(e)}), 500
 
+@dashboard_bp.route('/interventions/<intervention_id>/outcome', methods=['PUT'])
+def update_intervention_outcome(intervention_id):
+    """
+    Update the outcome/status of an intervention
+    PUT /api/dashboard/interventions/<intervention_id>/outcome
+    """
+    try:
+        data = request.json
+        status = data.get('status')
+        outcome_notes = data.get('outcome_notes')
+        
+        update_data = {}
+        if status:
+            update_data['status'] = status
+        if outcome_notes:
+            update_data['outcome_notes'] = outcome_notes
+            
+        # If completing, set outcome 'completed' if not provided
+        if status == 'completed' and 'outcome' not in data:
+             update_data['outcome'] = 'completed'
+        elif 'outcome' in data:
+             update_data['outcome'] = data['outcome']
+
+        # Add timestamp for completion if completing
+        if status == 'completed':
+            update_data['measured_at'] = datetime.utcnow()
+
+        result = update_one(
+            TEACHER_INTERVENTIONS,
+            {'_id': intervention_id}, # trying string ID first
+            {'$set': update_data}
+        )
+        
+        if result.matched_count == 0:
+            # Try ObjectId
+            try:
+                result = update_one(
+                    TEACHER_INTERVENTIONS,
+                    {'_id': ObjectId(intervention_id)},
+                    {'$set': update_data}
+                )
+            except:
+                pass
+        
+        if result.matched_count == 0:
+            return jsonify({'error': 'Intervention not found'}), 404
+
+        return jsonify({'message': 'Intervention updated successfully'}), 200
+
+    except Exception as e:
+        logger.error(f"Error updating intervention: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
 @dashboard_bp.route('/interventions/recommendations/<teacher_id>', methods=['GET'])
 def get_intervention_recommendations(teacher_id):
     try:
