@@ -161,11 +161,14 @@ const StudentPractice = () => {
 
         try {
             // 1. Calculate and update Mastery
+            // Backend expects response_time in seconds (validator limit is 3600 for 1 hour)
+            const responseTimeSeconds = responseTime / 1000;
+
             const masteryResponse = await masteryAPI.calculateMastery({
                 student_id: STUDENT_ID,
                 concept_id: currentItem.concept_id,
                 is_correct: isCorrect,
-                response_time: responseTime,
+                response_time: responseTimeSeconds,
                 current_mastery: selectedNode ? selectedNode.score : 0,
                 difficulty: currentItem.difficulty || 0.5
             });
