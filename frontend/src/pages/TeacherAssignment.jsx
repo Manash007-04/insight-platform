@@ -94,6 +94,7 @@ const TeacherAssignment = () => {
     const [selectedSubmission, setSelectedSubmission] = useState(null);
     const [grade, setGrade] = useState('');
     const [feedback, setFeedback] = useState('');
+    const [shareAnnotations, setShareAnnotations] = useState(false);
     const [gradingLoading, setGradingLoading] = useState(false);
 
     // Preview/Annotation State
@@ -127,6 +128,7 @@ const TeacherAssignment = () => {
         setGrade(submission.grade || '');
         setFeedback(submission.teacher_feedback || '');
         setCorrectedFileUrl(submission.corrected_file || null);
+        setShareAnnotations(submission.share_annotations || false);
     };
 
     // New File Click Handler
@@ -177,6 +179,7 @@ const TeacherAssignment = () => {
                 grade: parseFloat(grade),
                 teacher_feedback: feedback,
                 corrected_file: correctedFileUrl,
+                share_annotations: shareAnnotations,
                 return_to_student: true
             });
 
@@ -189,6 +192,7 @@ const TeacherAssignment = () => {
                         grade: parseFloat(grade),
                         teacher_feedback: feedback,
                         corrected_file: correctedFileUrl,
+                        share_annotations: shareAnnotations,
                         status: 'returned'
                     }
                     : sub
@@ -375,6 +379,21 @@ const TeacherAssignment = () => {
                                         />
                                     </div>
 
+                                    {correctedFileUrl && (
+                                        <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                                            <input
+                                                type="checkbox"
+                                                id="shareAnnotations"
+                                                checked={shareAnnotations}
+                                                onChange={(e) => setShareAnnotations(e.target.checked)}
+                                                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
+                                            />
+                                            <label htmlFor="shareAnnotations" className="text-sm font-bold text-blue-700 cursor-pointer select-none">
+                                                Share annotated paper with student
+                                            </label>
+                                        </div>
+                                    )}
+
                                     <div className="flex gap-2 pt-2">
                                         <button
                                             onClick={() => setSelectedSubmission(null)}
@@ -428,9 +447,10 @@ const TeacherAssignment = () => {
                             </div>
 
                             <div className="flex-1 bg-gray-100 overflow-hidden relative">
-                                {previewFile.type === 'image' ? (
+                                {previewFile.type === 'image' || previewFile.type === 'pdf' ? (
                                     <FileAnnotator
                                         fileUrl={previewFile.url}
+                                        fileType={previewFile.type}
                                         onSave={(anns) => console.log('Saved JSON', anns)} // We don't save JSON for this flow yet
                                         onSaveImage={handleSaveAnnotationImage} // We save flattened image 
                                     />

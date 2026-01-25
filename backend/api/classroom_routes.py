@@ -918,7 +918,9 @@ def get_assignment(assignment_id):
                     'grade': submission.get('grade'),
                     'teacher_feedback': submission.get('teacher_feedback'),
                     'submitted_at': submission.get('submitted_at').isoformat() if submission.get('submitted_at') else None,
-                    'is_late': submission.get('is_late')
+                    'is_late': submission.get('is_late'),
+                    # Only show corrected file if teacher explicitly shared it
+                    'corrected_file': submission.get('corrected_file') if submission.get('share_annotations') else None
                 }
 
         return jsonify(result), 200
@@ -1067,7 +1069,12 @@ def get_submission(submission_id):
             'teacher_feedback': submission.get('teacher_feedback'),
             'is_late': submission.get('is_late'),
             'submitted_at': submission.get('submitted_at').isoformat() if submission.get('submitted_at') else None,
-            'graded_at': submission.get('graded_at').isoformat() if submission.get('graded_at') else None
+            'graded_at': submission.get('graded_at').isoformat() if submission.get('graded_at') else None,
+            # For direct access (likely admin/teacher), show details. Or we could reuse share_annotations logic if this is used by student?
+            # Assuming this endpoint is general purpose, exposing it might be OK or checking role is better. 
+            # For safety let's expose it here as it's typically an ID-based lookup.
+            'corrected_file': submission.get('corrected_file'),
+            'share_annotations': submission.get('share_annotations', False)
         }), 200
     except Exception as e:
         return jsonify({'error': 'Internal server error', 'detail': str(e)}), 500
@@ -1125,6 +1132,8 @@ def get_assignment_submissions(assignment_id):
                 'attachments': submission.get('attachments', []),
                 'grade': submission.get('grade'),
                 'teacher_feedback': submission.get('teacher_feedback'),
+                'corrected_file': submission.get('corrected_file'),
+                'share_annotations': submission.get('share_annotations', False),
                 'is_late': submission.get('is_late'),
                 'submitted_at': submission.get('submitted_at').isoformat() if submission.get('submitted_at') else None,
                 'graded_at': submission.get('graded_at').isoformat() if submission.get('graded_at') else None
@@ -1142,13 +1151,6 @@ def get_assignment_submissions(assignment_id):
 def grade_submission(submission_id):
     """
     Teacher grades a submission
-
-    Request body:
-    {
-        "grade": 95,
-        "teacher_feedback": "Great work!",
-        "return_to_student": true
-    }
     """
     try:
         # submission_id is passed as argument
@@ -1159,6 +1161,7 @@ def grade_submission(submission_id):
             'grade': data.get('grade'),
             'teacher_feedback': data.get('teacher_feedback', ''),
             'corrected_file': data.get('corrected_file'),
+            'share_annotations': data.get('share_annotations', False),
             'status': 'returned' if data.get('return_to_student') else 'graded',
             'graded_at': datetime.utcnow(),
             'updated_at': datetime.utcnow()
@@ -1230,8 +1233,9 @@ def get_student_assignments(student_id):
                     'points': details.get('points'),
                     'status': submission.get('status'),
                     'grade': submission.get('grade'),
-                    'corrected_file': submission.get('corrected_file'),
+                    'corrected_file': submission.get('corrected_file') if submission.get('share_annotations') else None,
                     'is_late': submission.get('is_late'),
+
                     'submitted_at': submission.get('submitted_at').isoformat() if hasattr(submission.get('submitted_at'), 'isoformat') else submission.get('submitted_at')
                 })
 
