@@ -20,10 +20,11 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const SidebarItem = ({ icon: Icon, text, to, isCollapsed }) => {
+const SidebarItem = ({ icon: Icon, text, to, isCollapsed, end }) => {
     return (
         <NavLink
             to={to}
+            end={end}
             className={({ isActive }) =>
                 `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative
         ${isActive
@@ -65,7 +66,7 @@ const DashboardLayout = ({ children }) => {
     };
 
     const navItems = [
-        { icon: LayoutDashboard, text: 'Dashboard', to: '/student' },
+        { icon: LayoutDashboard, text: 'Dashboard', to: '/student', end: true },
         { icon: BookOpen, text: 'My Classes', to: '/student/classes' },
         { icon: Target, text: 'Practice Zone', to: '/student/practice' },
         { icon: MapIcon, text: 'Projects', to: '/student/projects' },
