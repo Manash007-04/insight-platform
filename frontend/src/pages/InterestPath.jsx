@@ -79,7 +79,7 @@ const InterestPath = () => {
                 <header className="mb-10">
                     <h1 className="text-3xl font-bold text-[#065F46] flex items-center gap-3">
                         <Compass className="text-[#065F46]" size={32} />
-                        Your Interest NavigatR
+                        Your Interest Navigator
                     </h1>
                     <p className="text-[#065F46]/70 mt-2">AI-driven analysis of your learning journey & career potential.</p>
                 </header>

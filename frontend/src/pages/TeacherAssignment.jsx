@@ -110,6 +110,9 @@ const TeacherAssignment = () => {
                 ]);
                 setAssignment(assignRes.data);
                 setSubmissions(subsRes.data);
+                console.log("[TeacherAssignment] Loaded assignment:", assignRes.data.title);
+                console.log("[TeacherAssignment] Loaded submissions:", subsRes.data.length);
+                console.log("[TeacherAssignment] Submissions Data:", subsRes.data);
             } catch (error) {
                 console.error("Error fetching assignment data:", error);
                 toast.error("Failed to load assignment details");
@@ -124,6 +127,7 @@ const TeacherAssignment = () => {
     }, [assignmentId]);
 
     const handleGradeClick = (submission) => {
+        console.log("[TeacherAssignment] Selected submission for grading:", submission.submission_id);
         setSelectedSubmission(submission);
         setGrade(submission.grade || '');
         setFeedback(submission.teacher_feedback || '');
@@ -146,6 +150,7 @@ const TeacherAssignment = () => {
     };
 
     const handleSaveAnnotationImage = async (file) => {
+        console.log("[TeacherAssignment] Saving annotation image...");
         try {
             const formData = new FormData();
             formData.append('file', file);
@@ -162,6 +167,7 @@ const TeacherAssignment = () => {
 
             setCorrectedFileUrl(data.file_url);
             setPreviewFile(null); // Close preview after save
+            console.log("[TeacherAssignment] Annotation saved:", data.file_url);
             toast.success("Annotated corrections saved!");
 
         } catch (error) {
@@ -173,6 +179,8 @@ const TeacherAssignment = () => {
     const submitGrade = async () => {
         if (!selectedSubmission) return;
 
+        console.log("[TeacherAssignment] Submitting grade:", { grade, feedback, return_to_student: true });
+
         setGradingLoading(true);
         try {
             await classroomAPI.gradeSubmission(selectedSubmission.submission_id, {
@@ -183,6 +191,9 @@ const TeacherAssignment = () => {
                 return_to_student: true
             });
 
+
+
+            console.log("[TeacherAssignment] Grade submitted successfully");
             toast.success("Grade & Corrections saved!");
 
             setSubmissions(prev => prev.map(sub =>

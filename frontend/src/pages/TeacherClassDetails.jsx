@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, NavLink, useLocation } from 'react-router-dom';
 import TeacherLayout from '../components/TeacherLayout';
-import { classroomAPI, achievementsAPI } from '../services/api';
+import { classroomAPI, achievementsAPI, resourcesAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import {
     Users,
@@ -37,6 +37,7 @@ const TeacherClassDetails = () => {
     const [title, setTitle] = useState('');
     const [dueDate, setDueDate] = useState('');
     const [points, setPoints] = useState(100);
+    const [attachments, setAttachments] = useState([]);
 
     const fetchData = async () => {
         try {
@@ -124,12 +125,50 @@ const TeacherClassDetails = () => {
 
         setSubmitting(true);
         try {
+            // 1. Upload Attachments First
+            const uploadedAttachments = [];
+
+            if (attachments.length > 0) {
+                console.log("Uploading attachments...", attachments.length);
+                const uploadPromises = attachments.map(async (att) => {
+                    if (att.file) {
+                        const formData = new FormData();
+                        formData.append('file', att.file);
+                        try {
+                            const res = await resourcesAPI.uploadFile(formData);
+                            return {
+                                name: att.name,
+                                url: res.data.file_url,
+                                type: att.type,
+                                size: att.size
+                            };
+                        } catch (err) {
+                            console.error("Failed to upload file:", att.name, err);
+                            return null;
+                        }
+                    } else if (att.url) {
+                        // Existing attachment (if editing, though creating new usually doesn't have existing)
+                        return {
+                            name: att.name,
+                            url: att.url,
+                            type: att.type,
+                            size: att.size
+                        };
+                    }
+                    return null;
+                });
+
+                const results = await Promise.all(uploadPromises);
+                uploadedAttachments.push(...results.filter(r => r !== null));
+                console.log("Uploads complete:", uploadedAttachments);
+            }
+
             let postData = {
                 author_id: getUserId(),
                 author_role: 'teacher',
                 post_type: postType,
                 content: newPostContent,
-                attachments: []
+                attachments: uploadedAttachments // Include uploaded files
             };
 
             if (postType === 'assignment') {
@@ -138,7 +177,7 @@ const TeacherClassDetails = () => {
                     assignment_type: 'homework', // Default
                     due_date: dueDate ? new Date(dueDate).toISOString() : null,
                     points: parseInt(points) || 100,
-                    attachments: []
+                    attachments: uploadedAttachments // Also include in details for redundancy/schema preference
                 };
             } else {
                 postData.title = 'Announcement';
@@ -151,7 +190,9 @@ const TeacherClassDetails = () => {
             setTitle('');
             setDueDate('');
             setPoints(100);
+            setPoints(100);
             setPostType('announcement');
+            setAttachments([]);
 
             // Refresh stream
             const streamRes = await classroomAPI.getClassStream(classroomId);
@@ -304,10 +345,62 @@ const TeacherClassDetails = () => {
                                                 </div>
                                             )}
 
+                                            {attachments.length > 0 && (
+                                                <div className="space-y-2 mb-4">
+                                                    {attachments.map((file, idx) => (
+                                                        <div key={idx} className="flex items-center justify-between bg-gray-50 border border-gray-200 p-2 rounded-lg text-sm">
+                                                            <div className="flex items-center gap-2 overflow-hidden">
+                                                                <FileText size={16} className="text-gray-400 shrink-0" />
+                                                                <span className="truncate text-gray-700">{file.name}</span>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => setAttachments(prev => prev.filter((_, i) => i !== idx))}
+                                                                className="text-gray-400 hover:text-red-500"
+                                                            >
+                                                                <X size={16} />
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            {/* File Upload Hidden Input */}
+                                            <input
+                                                type="file"
+                                                id="file-upload"
+                                                multiple
+                                                className="hidden"
+                                                onChange={(e) => {
+                                                    const files = Array.from(e.target.files);
+                                                    if (files.length > 0) {
+                                                        const newAttachments = files.map(file => ({
+                                                            name: file.name,
+                                                            type: file.type,
+                                                            size: file.size,
+                                                            url: URL.createObjectURL(file), // temporary preview
+                                                            file: file // Store raw file for upload
+                                                        }));
+                                                        setAttachments(prev => [...prev, ...newAttachments]);
+                                                    }
+                                                }}
+                                            />
+
                                             <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                                                 <div className="flex gap-2 text-gray-400">
-                                                    <button className="p-2 hover:bg-gray-100 rounded-lg hover:text-teal-600 transition-colors"><FileText size={20} /></button>
-                                                    <button className="p-2 hover:bg-gray-100 rounded-lg hover:text-teal-600 transition-colors"><Plus size={20} /></button>
+                                                    <button
+                                                        onClick={() => document.getElementById('file-upload').click()}
+                                                        className="p-2 hover:bg-gray-100 rounded-lg hover:text-teal-600 transition-colors"
+                                                        title="Attach File"
+                                                    >
+                                                        <FileText size={20} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => document.getElementById('file-upload').click()}
+                                                        className="p-2 hover:bg-gray-100 rounded-lg hover:text-teal-600 transition-colors"
+                                                        title="Add Info"
+                                                    >
+                                                        <Plus size={20} />
+                                                    </button>
                                                 </div>
                                                 <button
                                                     onClick={handleCreatePost}

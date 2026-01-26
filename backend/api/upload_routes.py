@@ -19,11 +19,15 @@ def allowed_file(filename):
 def upload_file():
     try:
         if 'file' not in request.files:
+            logger.error("Upload error: No 'file' part in request.files")
             return jsonify({'error': 'No file part'}), 400
         
         file = request.files['file']
         
+        logger.info(f"Upload request | filename: {file.filename} | content_type: {file.content_type}")
+        
         if file.filename == '':
+            logger.error("Upload error: No selected file")
             return jsonify({'error': 'No selected file'}), 400
             
         if file and allowed_file(file.filename):
@@ -62,11 +66,17 @@ from flask import send_from_directory
 @upload_bp.route('/uploads/<filename>', methods=['GET'])
 def download_file(filename):
     try:
+        if not filename:
+             return jsonify({'error': 'Invalid filename'}), 400
+             
+        # Fix: Strip any trailing whitespace (some browsers or copy-pastes might add %20)
+        filename = filename.strip()
+        
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         upload_dir = os.path.join(base_dir, 'static', 'uploads')
         
         file_path = os.path.join(upload_dir, filename)
-        logger.info(f"Download request | filename: {filename} | looking in: {file_path}")
+        logger.info(f"Download request | filename: '{filename}' | looking in: {file_path}")
         
         if not os.path.exists(file_path):
             logger.error(f"File not found on disk: {file_path}")

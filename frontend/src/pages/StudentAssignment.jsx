@@ -22,6 +22,7 @@ const StudentAssignment = () => {
         const fetchAssignment = async () => {
             try {
                 const response = await classroomAPI.getAssignment(assignmentId);
+                console.log("[StudentAssignment] Loaded assignment:", response.data.title);
                 setAssignment(response.data);
 
                 if (response.data.current_user_submission) {
@@ -44,6 +45,7 @@ const StudentAssignment = () => {
     }, [assignmentId]);
 
     const uploadFile = async (file) => {
+        console.log("[StudentAssignment] Uploading file:", file.name);
         const formData = new FormData();
         formData.append('file', file);
 
@@ -55,6 +57,8 @@ const StudentAssignment = () => {
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Upload failed');
+            console.log("[StudentAssignment] Upload success, URL:", data.file_url);
+            console.log("[StudentAssignment] Full upload response:", data);
             return data.file_url;
         } catch (e) {
             console.error("Upload error:", e);
@@ -64,7 +68,15 @@ const StudentAssignment = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        console.log("[StudentAssignment] Submitting assignment...");
         if (!submissionText.trim() && !attachment) return;
+
+        const studentId = user?.user_id || user?.id;
+        if (!studentId) {
+            console.error("[StudentAssignment] No student ID found in user object:", user);
+            setError("User identification failed. Please reload.");
+            return;
+        }
 
         try {
             setSubmitting(true);
@@ -83,16 +95,21 @@ const StudentAssignment = () => {
                 name: attachment.name
             }] : [];
 
-            await classroomAPI.submitAssignment(assignmentId, {
-                student_id: user?.user_id || user?.id,
+            const payload = {
+                student_id: studentId,
                 submission_text: submissionText,
                 attachments: attachments
-            });
+            };
+
+            console.log("[StudentAssignment] Sending payload:", payload);
+
+            await classroomAPI.submitAssignment(assignmentId, payload);
+            console.log("[StudentAssignment] Submission success");
             setSubmitted(true);
 
             // Trigger engagement update
             try {
-                await engagementAPI.analyzeEngagement({ student_id: user?.user_id || user?.id });
+                await engagementAPI.analyzeEngagement({ student_id: studentId });
             } catch (e) {
                 console.error("Failed to update engagement stats", e);
             }
@@ -102,7 +119,19 @@ const StudentAssignment = () => {
             }, 2000);
         } catch (err) {
             console.error("Submission error:", err);
-            setError("Failed to submit assignment. Please try again.");
+
+            // Handle "Already submitted" case by syncing state
+            if (err.response?.status === 400 && err.response?.data?.error?.includes('already submitted')) {
+                console.warn("[StudentAssignment] State mismatch detected. Assignment was already submitted.");
+                setSubmitted(true);
+                // Optionally re-fetch assignment to show the submission
+                const response = await classroomAPI.getAssignment(assignmentId);
+                if (response.data.current_user_submission) {
+                    setSubmissionText(response.data.current_user_submission.submission_text || '');
+                }
+            } else {
+                setError(err.response?.data?.error || "Failed to submit assignment. Please try again.");
+            }
         } finally {
             setSubmitting(false);
         }
@@ -134,7 +163,7 @@ const StudentAssignment = () => {
 
     return (
         <DashboardLayout>
-            <div className="max-w-4xl mx-auto">
+            <div className="max-w-7xl mx-auto">
                 <button
                     onClick={() => navigate(-1)}
                     className="flex items-center text-[#EAE0CF]/60 hover:text-[#EAE0CF] mb-6 transition-colors font-medium"
@@ -162,17 +191,47 @@ const StudentAssignment = () => {
                         </div>
                     </div>
 
-                    <div className="p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        <div className="lg:col-span-2 space-y-6">
+                    <div className="p-8 grid grid-cols-1 lg:grid-cols-5 gap-8">
+                        <div className="lg:col-span-3 space-y-6">
                             <div>
                                 <h3 className="font-bold text-lg text-[#EAE0CF] mb-3">Instructions</h3>
                                 <div className="prose text-[#EAE0CF]/80">
                                     {assignment.content || assignment.description || "No instructions provided."}
                                 </div>
+
+                                {console.log("[StudentAssignment] Assignment Attachments:", assignment.attachments)}
+
+                                {/* Attachments Display */}
+                                {(assignment.attachments?.length > 0 || assignment.assignment_details?.attachments?.length > 0) && (
+                                    <div className="mt-6">
+                                        <h4 className="font-bold text-[#EAE0CF] text-sm mb-3 flex items-center gap-2">
+                                            <FileText size={16} /> Attachments
+                                        </h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            {[...(assignment.attachments || []), ...(assignment.assignment_details?.attachments || [])].filter((v, i, a) => a.findIndex(t => (t.url === v.url)) === i).map((att, idx) => (
+                                                <a
+                                                    key={idx}
+                                                    href={att.url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex items-center gap-3 bg-[#213448] p-3 rounded-xl border border-[#EAE0CF]/10 hover:border-[#EAE0CF]/30 hover:bg-[#2a4055] transition-all group"
+                                                >
+                                                    <div className="bg-[#547792]/20 p-2 rounded-lg text-[#EAE0CF] group-hover:text-white transition-colors">
+                                                        <FileText size={20} />
+                                                    </div>
+                                                    <div className="overflow-hidden">
+                                                        <p className="font-bold text-[#EAE0CF] text-sm truncate group-hover:text-white transition-colors">{att.name}</p>
+                                                        <p className="text-[#EAE0CF]/50 text-xs">Click to view</p>
+                                                    </div>
+                                                </a>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
-                        <div className="bg-[#213448]/30 p-6 rounded-xl h-fit border border-[#EAE0CF]/10">
+                        <div className="lg:col-span-2 bg-[#213448]/30 p-6 rounded-xl h-fit border border-[#EAE0CF]/10">
                             <h3 className="font-bold text-lg text-[#EAE0CF] mb-4">Your Work</h3>
 
                             {submitted ? (

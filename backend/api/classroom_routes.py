@@ -688,11 +688,19 @@ def get_classroom_stream(classroom_id):
 
             # If user is student, check for submission
             user_id, role = get_current_user_id()
-            if user_id and role == 'student' and post.get('post_type') == 'assignment':
+             
+            # DEBUG LOGGING for stream submission check
+            if post.get('post_type') == 'assignment':
+                 logger.info(f"Stream check | post: {post['_id']} | user: {user_id} | role: {role}")
+                 print(f"DEBUG: Stream check | post: {post['_id']} | user: {user_id} | role: {role}", flush=True)
+
+            # Relaxed check: strict role check might fail if token role varies (e.g. 'Student' vs 'student')
+            if user_id and post.get('post_type') == 'assignment':
                 submission = find_one(CLASSROOM_SUBMISSIONS, {
                     'assignment_id': post['_id'],
                     'student_id': user_id
                 })
+                logger.info(f"Submission found: {submission['_id'] if submission else 'None'}")
                 if submission:
                     post_data['current_user_submission'] = {
                         'status': submission.get('status'),
@@ -813,6 +821,7 @@ def get_post_comments(post_id):
 def create_assignment(classroom_id):
     try:
         data = request.json
+        logger.info(f"Create assignment request | classroom_id: {classroom_id} | title: {data.get('title')}")
 
         if not data.get('title'):
             return jsonify({'error': 'Title is required'}), 400
@@ -861,6 +870,7 @@ def create_assignment(classroom_id):
 @classroom_bp.route('/classrooms/<classroom_id>/assignments', methods=['GET'])
 def get_classroom_assignments(classroom_id):
     try:
+        logger.info(f"Get classroom assignments request | classroom_id: {classroom_id}")
         assignments = find_many(CLASSROOM_POSTS, {'classroom_id': classroom_id, 'post_type': 'assignment'}, sort=[('created_at', -1)])
         result = []
         for assignment in assignments:
@@ -873,6 +883,7 @@ def get_classroom_assignments(classroom_id):
                 'submissions_count': len(submissions),
                 'created_at': assignment.get('created_at').isoformat() if assignment.get('created_at') else None
             })
+        logger.info(f"Classroom assignments retrieved | classroom_id: {classroom_id} | count: {len(result)}")
         return jsonify(result), 200
     except Exception as e:
         return jsonify({'error': 'Internal server error', 'detail': str(e)}), 500
@@ -880,6 +891,7 @@ def get_classroom_assignments(classroom_id):
 @classroom_bp.route('/assignments/<assignment_id>', methods=['GET'])
 def get_assignment(assignment_id):
     try:
+        logger.info(f"Get assignment request | assignment_id: {assignment_id}")
         assignment = find_one(CLASSROOM_POSTS, {'_id': assignment_id, 'post_type': 'assignment'})
         if not assignment:
             return jsonify({'error': 'Assignment not found'}), 404
@@ -923,6 +935,7 @@ def get_assignment(assignment_id):
                     'corrected_file': submission.get('corrected_file') if submission.get('share_annotations') else None
                 }
 
+        logger.info(f"Assignment retrieved | assignment_id: {assignment_id}")
         return jsonify(result), 200
     except Exception as e:
         return jsonify({'error': 'Internal server error', 'detail': str(e)}), 500
@@ -971,6 +984,7 @@ def submit_assignment(assignment_id):
     try:
         data = request.json
         logger.info(f"Assignment submission | assignment_id: {assignment_id} | student_id: {data.get('student_id')}")
+        logger.info(f"Submission payload | attachments: {data.get('attachments')} | text: {data.get('submission_text')}")
 
         if not data.get('student_id'):
             return jsonify({'error': 'student_id is required'}), 400
@@ -1053,6 +1067,7 @@ def submit_assignment(assignment_id):
 @classroom_bp.route('/submissions/<submission_id>', methods=['GET'])
 def get_submission(submission_id):
     try:
+        logger.info(f"Get submission request | submission_id: {submission_id}")
         submission = find_one(CLASSROOM_SUBMISSIONS, {'_id': submission_id})
         if not submission:
             return jsonify({'error': 'Submission not found'}), 404
@@ -1060,7 +1075,7 @@ def get_submission(submission_id):
         student = find_one(STUDENTS, {'_id': submission['student_id']})
         assignment = find_one(CLASSROOM_POSTS, {'_id': submission['assignment_id']})
 
-        return jsonify({
+        response_data = {
             'submission_id': submission['_id'],
             'assignment_id': submission['assignment_id'],
             'assignment_title': assignment.get('title') if assignment else None,
@@ -1079,7 +1094,9 @@ def get_submission(submission_id):
             # For safety let's expose it here as it's typically an ID-based lookup.
             'corrected_file': submission.get('corrected_file'),
             'share_annotations': submission.get('share_annotations', False)
-        }), 200
+        }
+        logger.info(f"Submission retrieved | submission_id: {submission_id}")
+        return jsonify(response_data), 200
     except Exception as e:
         return jsonify({'error': 'Internal server error', 'detail': str(e)}), 500
 

@@ -215,11 +215,12 @@ const TeacherAnalytics = () => {
                                         <p className="text-xs font-bold text-[#065F46]/60 uppercase tracking-wider">Avg. Mastery</p>
                                         <h3 className="text-3xl font-extrabold text-[#065F46] mt-1">{avgMastery}%</h3>
                                     </div>
-                                    <div className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold flex items-center gap-1">
-                                        <TrendingUp size={12} /> +4.2%
+                                    <div className={`px-2 py-1 rounded text-xs font-bold flex items-center gap-1 ${(masteryData?.mastery_trend || 0) >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                        <TrendingUp size={12} className={(masteryData?.mastery_trend || 0) < 0 ? 'rotate-180' : ''} />
+                                        {masteryData?.mastery_trend > 0 ? '+' : ''}{masteryData?.mastery_trend || 0}%
                                     </div>
                                 </div>
-                                <MockChart height="h-16" color="bg-green-500" data={[60, 65, 70, 68, 75, avgMastery]} />
+                                <MockChart height="h-16" color="bg-green-500" data={masteryData?.mastery_history?.length > 0 ? masteryData.mastery_history : [avgMastery > 0 ? avgMastery : 0]} />
                             </div>
 
                             <div className="bg-[#F4FFFD] p-6 rounded-2xl shadow-sm border-2 border-[#065F46]/20">

@@ -499,6 +499,43 @@ def get_mastery_heatmap(classroom_id):
         # Sort concepts by average mastery (lowest first - needs focus)
         concept_averages.sort(key=lambda x: x['average_mastery'])
 
+        # Calculate Mastery Trend & History (Based on Assignment Grades as Proxy)
+        # Get last 6 graded assignments
+        assignments = find_many(
+            CLASSROOM_POSTS,
+            {
+                'classroom_id': classroom_id,
+                'post_type': 'assignment',
+                'points': {'$gt': 0}
+            },
+            sort=[('created_at', -1)],
+            limit=6
+        )
+
+        mastery_history = []
+        
+        # Calculate average grade % for each assignment
+        for assignment in reversed(assignments): # Oldest first
+            submissions = find_many(CLASSROOM_SUBMISSIONS, {
+                'assignment_id': assignment['_id'],
+                'grade': {'$ne': None}
+            })
+            
+            if submissions:
+                total_percent = sum((s.get('grade', 0) / assignment.get('points', 100)) * 100 for s in submissions)
+                avg_percent = total_percent / len(submissions)
+                mastery_history.append(round(avg_percent, 1))
+            else:
+                # If no submissions, skip or use 0? using 0 might skew chart if it's just "not graded yet"
+                pass 
+
+        # Calculate Trend (Last vs Previous)
+        mastery_trend = 0
+        if len(mastery_history) >= 2:
+            mastery_trend = round(mastery_history[-1] - mastery_history[-2], 1)
+        elif len(mastery_history) == 1:
+             mastery_trend = 0 # Baseline
+
         response = {
             'classroom_id': classroom_id,
             'classroom_name': classroom.get('name', 'Unknown'),
@@ -510,10 +547,12 @@ def get_mastery_heatmap(classroom_id):
             'class_average_mastery': round(
                 sum(s['average_mastery'] for s in heatmap_data) / len(heatmap_data), 1
             ) if heatmap_data else 0,
+            'mastery_trend': mastery_trend,
+            'mastery_history': mastery_history,
             'timestamp': datetime.utcnow().isoformat()
         }
 
-        logger.info(f"Mastery heatmap generated | classroom_id: {classroom_id} | concepts: {len(concepts)}")
+        logger.info(f"Mastery heatmap generated | classroom_id: {classroom_id} | concepts: {len(concepts)} | trend: {mastery_trend}")
 
         return jsonify(response), 200
 

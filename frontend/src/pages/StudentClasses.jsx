@@ -333,6 +333,28 @@ const StudentClasses = () => {
                                             </div>
 
                                             <p className="text-[#EAE0CF]/90 mb-4 leading-relaxed whitespace-pre-wrap">{post.content || post.title}</p>
+
+                                            {/* Debug Log for Attachments (Hidden in UI but in Console) */}
+                                            {console.log(`[StudentClasses] Post ${post.post_id} attachments:`, post.attachments)}
+
+                                            {/* Attachments Display */}
+                                            {post.attachments && post.attachments.length > 0 && (
+                                                <div className="flex flex-wrap gap-2 mb-4">
+                                                    {post.attachments.map((att, idx) => (
+                                                        <a
+                                                            key={idx}
+                                                            href={att.url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="flex items-center gap-2 bg-[#213448]/50 hover:bg-[#213448] text-[#EAE0CF] px-3 py-2 rounded-lg border border-[#EAE0CF]/10 transition-colors text-sm"
+                                                        >
+                                                            <FileText size={14} />
+                                                            <span className="truncate max-w-[150px]">{att.name}</span>
+                                                        </a>
+                                                    ))}
+                                                </div>
+                                            )}
+
                                             {post.content && post.title && post.title !== post.content && <h4 className='font-bold mb-2 text-white'>{post.title}</h4>}
 
 
